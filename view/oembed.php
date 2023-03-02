@@ -65,11 +65,17 @@ $embedURL = Video::getLinkToVideo($videos_id, $video['clean_title'], true);
 $duration = Video::getItemDurationSeconds($video['duration']);
 $code = str_replace("{embedURL}", $embedURL, $advancedCustom->embedCodeTemplate);
 
+if (($type !== 'video') && ($type !== 'short')) {
+    $oembedType = "rich";
+} else {
+    $oembedType = "video";
+}
+
 if ($format === 'xml') {
-    header('Content-type: application/xml'); ?><?xml version="1.0" encoding="UTF-8"?>
+    header('Content-type: text/xml'); ?><?xml version="1.0" encoding="UTF-8"?>
 <oembed>
   <version>1.0</version>
-  <type>rich</type>
+  <type><?php echo $oembedType; ?></type>
   <width><?php echo $imgw; ?></width>
   <height><?php echo $imgh; ?></height>
   <title><?php echo $title; ?></title>
@@ -82,8 +88,8 @@ if ($format === 'xml') {
 } else {
         header('Content-Type: application/json');
         $obj=new stdClass();
-        $obj->version = 1.0;
-        $obj->type = "rich";
+        $obj->version = "1.0";
+        $obj->type = $oembedType;
         $obj->width = $imgw;
         $obj->height = $imgh;
         $obj->title = $title;
