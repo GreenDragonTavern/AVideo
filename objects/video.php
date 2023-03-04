@@ -4204,13 +4204,15 @@ if (!class_exists('Video')) {
         }
 
         public static function getVideosPathsSearchingDir($filename, $includeS3 = false) {
-            global $global, $_getVideosPaths;
+            global $global;
 
             $paths = self::getPaths($filename);
             $dir = $paths["path"];
+            if(!is_dir($dir)){
+                return array();
+            }
             $allowedExtensions = array('mp4');
             $dirHandle = opendir($dir);
-            $videos = array();
             while ($file = readdir($dirHandle)) {
                 if ($file == '.' || $file == '..') {
                     continue;

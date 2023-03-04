@@ -1236,11 +1236,15 @@ async function showAutoPlayVideoDiv() {
 }
 
 function enableAutoPlay() {
+    forceNotautoplay = false;
+    forceautoplay = true;
     setAutoplay(true);
     checkAutoPlay();
 }
 
 function disableAutoPlay() {
+    forceautoplay = false;
+    forceNotautoplay = true;
     setAutoplay(false);
     checkAutoPlay();
 }
@@ -2696,12 +2700,11 @@ function getCursorPos(input) {
 function isUserOnline(users_id) {
     users_id = parseInt(users_id);
     if (typeof users_id_online === 'undefined' || empty(users_id_online)) {
+        console.log('isUserOnline', users_id);
         return false;
     }
     if (typeof users_id_online[users_id] === 'undefined' || empty(users_id_online[users_id])) {
-        return false;
-    }
-    if (empty(users_id_online[users_id].resourceId)) {
+        console.log('isUserOnline array ', users_id);
         return false;
     }
     return users_id_online[users_id];
