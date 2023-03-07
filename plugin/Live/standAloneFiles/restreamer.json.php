@@ -65,7 +65,7 @@ if (file_exists($configFile)) {
     $streamerURL = $global['webSiteRootURL'];
     error_log("Restreamer.json.php is using local configuration");
 }
-require_once __DIR__ . "/../../../vendor/autoload.php";
+require_once __DIR__ . "/vendor/autoload.php";
 
 if (!empty($_REQUEST['tokenForAction'])) {
     $obj = new stdClass();
