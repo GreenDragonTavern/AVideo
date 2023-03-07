@@ -1,0 +1,18 @@
+{
+    "name": "wwbn/avideo",
+    "description": "Audio Video Platform",
+    "type": "project",
+    "config": {
+        "platform-check": false,
+        "vendor-dir": "vendor",
+        "platform": {
+            "php": "7.3"
+        }
+    },
+    "require": {
+        "php": "^7.3|^8",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "amphp/amp": "^2.6"
+    }
+}
