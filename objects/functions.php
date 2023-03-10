@@ -1864,7 +1864,7 @@ function im_resize($file_src, $file_dest, $wd, $hd, $q = 80)
     }
 
     if (is_bool($src)) {
-        _error_log("im_resize error on source {$file_src} ", AVideoLog::$ERROR);
+        //_error_log("im_resize error on source {$file_src} ", AVideoLog::$ERROR);
         return false;
     }
 
@@ -8731,10 +8731,7 @@ function getLiveUsersLabelVideo($videos_id, $totalViews = null, $viewsClass = "l
 function getLiveUsersLabelLive($key, $live_servers_id, $viewsClass = "label label-default", $counterClass = "label label-primary")
 {
     if (AVideoPlugin::isEnabledByName('LiveUsers') && method_exists("LiveUsers", "getLabels")) {
-        $totalViews = 0;
-        if (User::isLogged()) {
-            $totalViews = LiveUsers::getTotalUsers($key, $live_servers_id);
-        }
+        $totalViews = LiveUsers::getTotalUsers($key, $live_servers_id);
         return LiveUsers::getLabels(getSocketLiveClassName($key, $live_servers_id), $totalViews, $viewsClass, $counterClass, 'live');
     }
 }
@@ -9950,7 +9947,7 @@ function getMediaSessionPosters($imagePath)
 {
     global $global;
     if (empty($imagePath) || !file_exists($imagePath)) {
-        return false;
+        return array();
     }
     $sizes = [96, 128, 192, 256, 384, 512];
 

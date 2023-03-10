@@ -223,6 +223,10 @@ if (!empty($obj->playLiveInFullScreenOnIframe)) {
         user = application.user;
         photo = application.photo;
 
+        if(/Restream test/.test(title)){
+            return false;
+        }
+
         if (!empty(application.expires) && application.expires < _serverTime) {
             return false;
         }
@@ -342,7 +346,7 @@ if ($obj->doNotProcessNotifications) {
         itemsArray.icon = 'fas fa-video';
         itemsArray.type = 'info';
         itemsArray.html = '<span class="label label-danger liveNow faa-flash faa-slow animated" style="display:inline-block; float:right;">LIVE NOW</span>';
-        addTemplateFromArray(itemsArray);
+        addTemplateFromArray(itemsArray, false);
     }
 
 <?php

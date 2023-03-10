@@ -2247,9 +2247,12 @@ Click <a href=\"{link}\">here</a> to join our live.";
             $title = " <i class=\"fas fa-lock\"></i> {$title}";
         }
 
-        $u = new User($row['users_id']);
-        if ($u->getStatus() !== 'a') {
-            $title = " <i class=\"fas fa-user-alt-slash\"></i> {$title}";
+        if(!empty($row['users_id'])){
+            $u = new User($row['users_id']);
+            $status = $u->getStatus();
+            if ($status !== 'a') {
+                $title = " <i class=\"fas fa-user-alt-slash\"></i><!-- user status={$status} users_id={$row['users_id']}  --> {$title}";
+            }
         }
 
         $parameters = self::getLiveParametersFromKey($key);
@@ -2275,7 +2278,7 @@ Click <a href=\"{link}\">here</a> to join our live.";
         }
         if (!isset($_isApplicationListed[$key])) {
             $row = LiveTransmition::keyExists($key);
-            if (empty($row)) {
+            if (empty($row) || empty($row['users_id'])) {
                 $_isApplicationListed[$key] = __LINE__;
             } else if (!empty($row['scheduled'])) {
                 $_isApplicationListed[$key] = __LINE__;
@@ -3463,7 +3466,7 @@ Click <a href=\"{link}\">here</a> to join our live.";
     public static function passwordIsGood($key) {
         $row = LiveTransmition::getFromKey($key, true);
         if (empty($row) || empty($row['id']) || empty($row['users_id'])) {
-            return false;
+            return true;
         }
 
         $password = @$row['live_password'];
@@ -3500,6 +3503,9 @@ Click <a href=\"{link}\">here</a> to join our live.";
     public static function getMediaSession($key, $live_servers_id, $live_schedule_id = 0) {
         $lt = LiveTransmition::getFromKey($key);
         $posters = self::getMediaSessionPosters($lt['users_id'], $lt['live_servers_id'], $lt['live_schedule_id']);
+        if(empty($posters)){
+            $posters = array();
+        }
         //var_dump($posters);exit;
         $category = Category::getCategory($lt['categories_id']);
         $MediaMetadata = new stdClass();
