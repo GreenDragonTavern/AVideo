@@ -511,11 +511,7 @@ if (!class_exists('Video')) {
                 _error_log("Video::save ({$this->title}) Saved id = {$insert_row} {$this->duration} " . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
                 Category::clearCacheCount();
                 if (empty($this->id)) {
-                    $id = $global['mysqli']->insert_id;
-                    if (empty($id)) {
-                        $id = $insert_row;
-                    }
-                    $this->id = $id;
+                    $this->id = $insert_row;
 
                     // check if needs to add the video in a user group
                     $p = AVideoPlugin::loadPluginIfEnabled("PredefinedCategory");
@@ -549,7 +545,7 @@ if (!class_exists('Video')) {
                     //Video::autosetCategoryType($this->old_categories_id);
                 }
                 self::clearCache($this->id);
-                return $id;
+                return $this->id;
             }
             /**
              *
@@ -726,15 +722,25 @@ if (!class_exists('Video')) {
             return $status;
         }
 
+        public function isScheduledForRelease() {
+            $datetime = $this->getPublish_datetime();
+            if(empty($datetime)){
+                return false;
+            }
+            return strtotime($datetime)>time();
+        }
+
         public function setAutoStatus($default = 'a') {
             global $advancedCustom;
             if (empty($advancedCustom)) {
                 $advancedCustom = AVideoPlugin::getDataObject('CustomizeAdvanced');
             }
-
             if (!empty($_POST['fail'])) {
                 return $this->setStatus(Video::$statusEncodingError);
-            } else {
+            } else {      
+                if($this->isScheduledForRelease()){
+                    return $this->setStatus(Video::$statusScheduledReleaseDate);
+                }else 
                 if (!empty($_REQUEST['overrideStatus'])) {
                     return $this->setStatus($_REQUEST['overrideStatus']);
                 } else if (!empty($_REQUEST['releaseDate']) && $_REQUEST['releaseDate'] !== 'now') {
@@ -940,6 +946,8 @@ if (!class_exists('Video')) {
                 } else {
                     $sql .= " AND v.type = '{$_SESSION['type']}' ";
                 }
+            } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video') {
+                $sql .= " AND (v.type = 'audio' OR v.type = 'video') ";
             } else if (!empty($_REQUEST['videoType']) && in_array($_REQUEST['videoType'], self::$typeOptions)) {
                 $sql .= " AND v.type = '{$_REQUEST['videoType']}' ";
             }
@@ -955,9 +963,13 @@ if (!class_exists('Video')) {
                 $sql .= " AND v.status = '{$status}'";
             }
 
-            if (!empty($_GET['catName'])) {
-                $catName = ($_GET['catName']);
-                $sql .= " AND (c.clean_name = '{$catName}' OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' ))";
+            if (!empty($_REQUEST['catName'])) {
+                $catName = ($_REQUEST['catName']);
+                $sql .= " AND (c.clean_name = '{$catName}' ";
+                if(empty($_REQUEST['doNotShowCatChilds'])){
+                    $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
+                }
+                $sql .= " )";
             }
 
             if (empty($id) && !empty($_GET['channelName'])) {
@@ -1310,7 +1322,8 @@ if (!class_exists('Video')) {
                 $suggestedOnly = true;
                 $status = '';
             }
-            $sql = "SELECT STRAIGHT_JOIN  u.*, u.externalOptions as userExternalOptions, v.*, c.iconClass, c.name as category, c.clean_name as clean_category,c.description as category_description,"
+            $sql = "SELECT STRAIGHT_JOIN  u.*, u.externalOptions as userExternalOptions, v.*, c.iconClass, 
+                    c.name as category, c.order as category_order, c.clean_name as clean_category,c.description as category_description,"
                     . " v.created as videoCreation, v.modified as videoModified "
                     //. ", (SELECT count(id) FROM likes as l where l.videos_id = v.id AND `like` = 1 ) as likes "
                     //. ", (SELECT count(id) FROM likes as l where l.videos_id = v.id AND `like` = -1 ) as dislikes "
@@ -1390,6 +1403,8 @@ if (!class_exists('Video')) {
                 $sql .= " AND v.type != 'article' ";
             } else if (!empty($type)) {
                 $sql .= " AND v.type = '{$type}' ";
+            } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video') {
+                $sql .= " AND (v.type = 'audio' OR v.type = 'video') ";
             } else if (!empty($_REQUEST['videoType']) && in_array($_REQUEST['videoType'], self::$typeOptions)) {
                 $sql .= " AND v.type = '{$_REQUEST['videoType']}' ";
             }
@@ -1410,9 +1425,13 @@ if (!class_exists('Video')) {
                 $sql .= " AND v.status = '{$status}'";
             }
 
-            if (!empty($_GET['catName'])) {
-                $catName = ($_GET['catName']);
-                $sql .= " AND (c.clean_name = '{$catName}' OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' ))";
+            if (!empty($_REQUEST['catName'])) {
+                $catName = ($_REQUEST['catName']);
+                $sql .= " AND (c.clean_name = '{$catName}' ";
+                if(empty($_REQUEST['doNotShowCatChilds'])){
+                    $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
+                }
+                $sql .= " )";
             }
 
             if (!empty($_GET['search'])) {
@@ -1466,6 +1485,7 @@ if (!class_exists('Video')) {
                 if (!empty($_REQUEST['current']) && $_REQUEST['current'] == 1) {
                     $rows = VideoStatistic::getVideosWithMoreViews($status, $showOnlyLoggedUserVideos, $showUnlisted, $suggestedOnly);
                 }
+                //var_dump($_REQUEST['current'], $rows); 
                 $ids = [];
                 foreach ($rows as $row) {
                     $ids[] = $row['id'];
@@ -1500,7 +1520,7 @@ if (!class_exists('Video')) {
                 }
             }
 
-            //echo $sql;//exit;
+            //echo $sql;exit;
             //_error_log("getAllVideos($status, $showOnlyLoggedUserVideos , $ignoreGroup , ". json_encode($videosArrayId).")" . $sql);
 
             $timeLogName = TimeLogStart("video::getAllVideos");
@@ -1872,7 +1892,11 @@ if (!class_exists('Video')) {
             }
             if (!empty($_REQUEST['catName'])) {
                 $catName = ($_REQUEST['catName']);
-                $sql .= " AND (c.clean_name = '{$catName}' OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' ))";
+                $sql .= " AND (c.clean_name = '{$catName}' ";
+                if(empty($_REQUEST['doNotShowCatChilds'])){
+                    $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
+                }
+                $sql .= " )";
             }
             $sql .= AVideoPlugin::getVideoWhereClause();
             if (!empty($type)) {
@@ -1940,7 +1964,7 @@ if (!class_exists('Video')) {
             }
             /*
               $cn = '';
-              if (!empty($_GET['catName'])) {
+              if (!empty($_REQUEST['catName'])) {
               $cn .= ", c.clean_name as cn";
               }
              *
@@ -2006,9 +2030,13 @@ if (!class_exists('Video')) {
                 }
             }
 
-            if (!empty($_GET['catName'])) {
-                $catName = ($_GET['catName']);
-                $sql .= " AND (c.clean_name = '{$catName}' OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' ))";
+            if (!empty($_REQUEST['catName'])) {
+                $catName = ($_REQUEST['catName']);
+                $sql .= " AND (c.clean_name = '{$catName}' ";
+                if(empty($_REQUEST['doNotShowCatChilds'])){
+                    $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
+                }
+                $sql .= " )";
             }
 
             if (!empty($_SESSION['type'])) {
@@ -2029,6 +2057,8 @@ if (!class_exists('Video')) {
                 $sql .= " AND v.type != 'article' ";
             } else if (!empty($type)) {
                 $sql .= " AND v.type = '{$type}' ";
+            } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video') {
+                $sql .= " AND (v.type = 'audio' OR v.type = 'video') ";
             } else if (!empty($_REQUEST['videoType']) && in_array($_REQUEST['videoType'], self::$typeOptions)) {
                 $sql .= " AND v.type = '{$_REQUEST['videoType']}' ";
             }
@@ -2173,6 +2203,9 @@ if (!class_exists('Video')) {
                 if (!empty($search)) {
                     $viewable[] = Video::$statusUnlistedButSearchable;
                 }
+            }
+            if(User::isAdmin()){
+               $viewable[] = Video::$statusScheduledReleaseDate;
             }
             /*
              * Cannot do that otherwise it will list videos on the list videos menu
@@ -2962,19 +2995,21 @@ if (!class_exists('Video')) {
             TimeLogStart("video::getTags_ source $video_id, $type");
             if (empty($type) || $type === "source") {
                 $url = $video->getVideoDownloadedLink();
-                $parse = parse_url($url);
-                $objTag = new stdClass();
-                $objTag->label = __("Source");
-                if (!empty($parse['host'])) {
-                    $objTag->type = "danger";
-                    $objTag->text = $parse['host'];
-                    $tags[] = $objTag;
+                if(!empty($url)){
+                    $parse = parse_url($url);
                     $objTag = new stdClass();
-                } else {
-                    $objTag->type = "info";
-                    $objTag->text = __("Local File");
-                    $tags[] = $objTag;
-                    $objTag = new stdClass();
+                    $objTag->label = __("Source");
+                    if (!empty($parse['host'])) {
+                        $objTag->type = "danger";
+                        $objTag->text = $parse['host'];
+                        $tags[] = $objTag;
+                        $objTag = new stdClass();
+                    } else {
+                        $objTag->type = "info";
+                        $objTag->text = __("Local File");
+                        $tags[] = $objTag;
+                        $objTag = new stdClass();
+                    }
                 }
             }
             TimeLogEnd("video::getTags_ source $video_id, $type", __LINE__, $tolerance);
@@ -3106,7 +3141,7 @@ if (!class_exists('Video')) {
                 return false;
             }
 
-            $video = self::getVideoLight($videos_id);
+            $video = self::getVideoLight($videos_id, true);
             if ($video) {
                 if ($video['users_id'] == $users_id || ($checkAffiliate && $video['users_id_company'] == $users_id)) {
                     return true;
@@ -4635,14 +4670,14 @@ if (!class_exists('Video')) {
 
             if ($type == "URLFriendly") {
                 $cat = '';
-                if (!empty($_GET['catName'])) {
-                    $cat = "cat/{$_GET['catName']}/";
+                if (!empty($_REQUEST['catName'])) {
+                    $cat = "cat/{$_REQUEST['catName']}/";
                 }
 
                 if (empty($clean_title)) {
                     $clean_title = $video->getClean_title();
                 }
-                $clean_title = urlencode($clean_title);
+                $clean_title = @urlencode($clean_title);
                 $subDir = "video";
                 $subEmbedDir = "videoEmbed";
                 if ($video->getType() == 'article') {
@@ -5451,7 +5486,7 @@ if (!class_exists('Video')) {
         public static function getVideosListItem($videos_id, $divID = '', $style = '') {
             global $global, $advancedCustom;
             $get = [];
-            $get = ['channelName' => @$_GET['channelName'], 'catName' => @$_GET['catName']];
+            $get = ['channelName' => @$_GET['channelName'], 'catName' => @$_REQUEST['catName']];
 
             if (empty($divID)) {
                 $divID = "divVideo-{$videos_id}";
@@ -5953,7 +5988,7 @@ if (!class_exists('Video')) {
             }
             return $url;
         }
-
+        
     }
 
 }
@@ -5961,7 +5996,7 @@ if (!class_exists('Video')) {
 if (!empty($_GET['v']) && empty($_GET['videoName'])) {
     $_GET['videoName'] = Video::get_clean_title($_GET['v']);
 }
-
+global $statusThatShowTheCompleteMenu, $statusSearchFilter, $statusThatTheUserCanUpdate;
 $statusThatShowTheCompleteMenu = [
     Video::$statusActive,
     Video::$statusInactive,

@@ -369,7 +369,7 @@ abstract class ObjectYPT implements ObjectInterface
         }
         //var_dump(static::getTableName(), $sql, $values);
         //if(static::getTableName() == 'videos'){ echo $sql;var_dump($values); var_dump(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS));}//return false;
-        //echo $sql;var_dump($values);exit;
+        //echo $sql;var_dump($this, $values);exit;
         $insert_row = sqlDAL::writeSql($sql, $formats, $values);
 
         /**
@@ -691,10 +691,10 @@ abstract class ObjectYPT implements ObjectInterface
 
         $newtmpDir = rtrim($tmpDir, DIRECTORY_SEPARATOR) . uniqid();
         _error_log("deleteALLCache rename($tmpDir, $newtmpDir) ");
-        rename($tmpDir, $newtmpDir);
+        @rename($tmpDir, $newtmpDir);
         if (is_dir($tmpDir)) {
             _error_log('deleteALLCache 1 rmdir ' . $tmpDir);
-            rrmdir($tmpDir);
+            @rrmdir($tmpDir);
         } elseif (preg_match('/videos.cache/', $newtmpDir)) {
             // only delete if it is on the videos dir. otherwise it is on the /tmp dit and the system will delete it
             _error_log('deleteALLCache 2 rmdir ' . $newtmpDir);
@@ -856,7 +856,7 @@ abstract class ObjectYPT implements ObjectInterface
     {
         $file = self::getLastDeleteALLCacheTimeFile();
         //_error_log("ObjectYPT::setLastDeleteALLCacheTime {$file}");
-        return file_put_contents($file, time());
+        return @file_put_contents($file, time());
     }
 
     public static function getLastDeleteALLCacheTime()

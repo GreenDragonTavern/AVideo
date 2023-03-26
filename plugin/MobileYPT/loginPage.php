@@ -15,11 +15,9 @@ if (!empty($_REQUEST['logoff'])) {
     User::logoff();
 }
 $html = '';
-if (!empty($_REQUEST['user']) && !empty($_REQUEST['pass'])) {
-    User::loginFromRequest();
-}
+User::loginFromRequestIfNotLogged();
 if (User::isLogged()) {
-    $html .= getIncludeFileContent($global['systemRootPath'] . 'plugin/MobileYPT/userButtons.php');
+    //$html .= getIncludeFileContent($global['systemRootPath'] . 'plugin/MobileYPT/userButtons.php');
 } else {
     if (!empty($_REQUEST['SignUp'])) {
         $html .= getIncludeFileContent($global['systemRootPath'] . 'view/userSignUpBody.php');
@@ -31,6 +29,7 @@ if (User::isLogged()) {
         $html .= getIncludeFileContent($global['systemRootPath'] . 'view/userLogin.php', array('signUpURL' => $signUpURL, '_GET[\'redirectUri\']' => $redirectUri, 'hideRememberMe' => 1));
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="">
@@ -73,7 +72,7 @@ if (User::isLogged()) {
         </style>
     </head>
 
-    <body style="background-color: transparent; <?php echo $bodyClass; ?>">
+    <body style="background-color: transparent; <?php echo @$bodyClass; ?>">
         <?php
         echo $html;
         ?>

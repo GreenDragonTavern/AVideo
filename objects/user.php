@@ -340,6 +340,8 @@ if (typeof gtag !== \"function\") {
     }
 
     public static function _recommendChannelName($name = "", $try = 0, $unknown = "", $users_id = 0) {
+        
+        $name = preg_replace('/\s+/', '', $name);
         if (empty($users_id)) {
             if (!empty(User::getId())) {
                 $users_id = User::getId();
@@ -361,6 +363,7 @@ if (typeof gtag !== \"function\") {
             if ($name == __("Unknown User") && !empty($unknown)) {
                 $name = $unknown;
             }
+            $name = preg_replace('/\s+/', '', $name);
             $name = cleanString($name);
         }
         // in case is a email get only the username
@@ -1036,7 +1039,7 @@ if (typeof gtag !== \"function\") {
             _session_regenerate_id();
             session_write_close();
 
-            _error_log('User:login finish ' . json_encode($_SESSION['user']['id']));
+            _error_log('User:login finish users_id=' . json_encode($_SESSION['user']['id']) );
             return self::USER_LOGGED;
         } else {
             unset($_SESSION['user']);
@@ -1571,7 +1574,7 @@ if (typeof gtag !== \"function\") {
             $user['photo'] = self::getPhoto($user['id']);
             $user['background'] = self::getBackground($user['id']);
             $user['tags'] = self::getTags($user['id']);
-            $user['name'] = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/u', '', $user['name']);
+            $user['name'] = @preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/u', '', $user['name']);
             $user['isEmailVerified'] = $user['emailVerified'];
             if (!is_null($user['externalOptions'])) {
                 $externalOptions = User::decodeExternalOption($user['externalOptions']);
@@ -1878,7 +1881,7 @@ if (typeof gtag !== \"function\") {
         $row['photo'] = self::getPhoto($row['id']);
         $row['background'] = self::getBackground($row['id']);
         $row['tags'] = self::getTags($row['id']);
-        $row['name'] = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/u', '', $row['name']);
+        $row['name'] = @preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/u', '', $row['name']);
         $row['isEmailVerified'] = $row['emailVerified'];
         if (!is_null($row['externalOptions'])) {
             $externalOptions = self::decodeExternalOption($row['externalOptions']);
@@ -2637,6 +2640,13 @@ if (typeof gtag !== \"function\") {
         }
     }
 
+    public static function loginFromRequestIfNotLogged() {
+        if(User::isLogged()){
+            return self::USER_LOGGED;
+        }
+        return self::loginFromRequest();
+    }
+
     public static function loginFromRequest() {
         inputToRequest();
         if (!empty($_REQUEST['do_not_login'])) {
@@ -2996,7 +3006,7 @@ if (typeof gtag !== \"function\") {
         $get = ['channelName' => $u->getChannelName()];
         $current = getCurrentPage();
         $rowCount = getRowCount();
-        $sort = $_POST['sort'];
+        $sort = @$_POST['sort'];
         $_POST['current'] = 1;
         $_REQUEST['rowCount'] = $objGallery->screenColsLarge;
         $_POST['sort']['created'] = "DESC";

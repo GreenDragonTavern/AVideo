@@ -144,7 +144,7 @@ class Live_schedule extends ObjectYPT
         if(!preg_match('/order by/i', $sql)){
             $sql .= ' ORDER BY scheduled_time ASC';
         }
-        
+        //echo $sql;exit;
         $res = sqlDAL::readSql($sql);
         $fullData = sqlDAL::fetchAllAssoc($res);
         sqlDAL::close($res);
@@ -352,6 +352,10 @@ class Live_schedule extends ObjectYPT
         
         if (empty($this->users_id_company)) {
             $this->users_id_company = 'NULL';
+        }
+        
+        if ($this->status != 'i') {
+            $this->status = 'a';
         }
 
         if (empty($this->key)) {

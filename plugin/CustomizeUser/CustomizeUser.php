@@ -150,10 +150,10 @@ class CustomizeUser extends PluginAbstract
         $obj->signupWelcomeAlert = "You are welcome and an even bigger thank you for registering";
 
         $obj->allowDonationLink = false;
-        $obj->donationButtonLabel = __('Donation');
+        $obj->donationButtonLabel = ('Donation');
         $obj->allowWalletDirectTransferDonation = false;
         $obj->UsersCanCustomizeWalletDirectTransferDonation = false;
-        $obj->donationWalletButtonLabel = __('Donate from your wallet');
+        $obj->donationWalletButtonLabel = ('Donate from your wallet');
         $obj->disableCaptchaOnWalletDirectTransferDonation = false;
 
         $obj->showEmailVerifiedMark = true;
@@ -464,7 +464,7 @@ class CustomizeUser extends PluginAbstract
         $svd = AVideoPlugin::loadPluginIfEnabled('SecureVideosDirectory');
         if (!empty($svd)) {
             if ($svd->isWhiteListed()) {
-                _error_log("CustomizeUser::getModeYouTube this video is embed and whitelisted, we will by pass the security check");
+                //_error_log("CustomizeUser::getModeYouTube this video is embed and whitelisted, we will by pass the security check");
                 return true;
             } else {
                 _error_log("CustomizeUser::getModeYouTube this video is NOT whitelisted, [{$_SERVER['HTTP_REFERER']}]");

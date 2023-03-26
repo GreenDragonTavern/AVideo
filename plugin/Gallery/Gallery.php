@@ -125,6 +125,7 @@ class Gallery extends PluginAbstract
 
         $obj->sortReverseable = false;
         $obj->SubCategorys = false;
+        self::addDataObjectHelper('SubCategorys', 'Show Subcategories', 'When you are in the categories page, show the subcategories link at the top');
         $obj->showTags = true;
         $obj->showCategoryTag = true;
         $obj->showCategoryLiveRow = false;
@@ -377,10 +378,10 @@ class Gallery extends PluginAbstract
                     $countVideos += $section->totalRows;
                     $response->sections[] = $section;
                 } else
-                if ($value['name'] == 'DateAdded' && empty($_GET['catName'])) {
+                if ($value['name'] == 'DateAdded' && empty($_REQUEST['catName'])) {
                     $title = !empty($obj->DateAddedCustomTitle) ? $obj->DateAddedCustomTitle : __("Date added");
                     $rowCount = intval($obj->DateAddedRowCount);
-                    $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&sort[created]=asc";
+                    $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&sort[created]=desc";
                     $section = new SectionFirstPage($value['name'], $title, $endpoint, $rowCount);
                     $countVideos += $section->totalRows;
                     $response->sections[] = $section;
@@ -416,7 +417,7 @@ class Gallery extends PluginAbstract
                     foreach ($channels as $value2) {
                         $title = $value2['channelName'];
                         $rowCount = $obj->SubscribedChannelsRowCount;
-                        $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&channelName={$title}";
+                        $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&channelName={$title}&sort[created]=desc";
                         $section = new SectionFirstPage($value['name'], $title, $endpoint, $rowCount);
                         $countVideos += $section->totalRows;
                         $response->sections[] = $section;
@@ -429,7 +430,7 @@ class Gallery extends PluginAbstract
                         foreach ($tags as $value2) {
                             $title = $value2['name'];
                             $rowCount = $obj->SubscribedTagsRowCount;
-                            $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&tags_id={$value2['id']}";
+                            $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&tags_id={$value2['id']}&sort[created]=desc";
                             $section = new SectionFirstPage($value['name'], $title, $endpoint, $rowCount);
                             $countVideos += $section->totalRows;
                             $response->sections[] = $section;
@@ -444,7 +445,7 @@ class Gallery extends PluginAbstract
                     foreach ($categories as $value2) {
                         $title = $value2['name'];
                         $rowCount = $obj->CategoriesRowCount;
-                        $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&catName={$value2['clean_name']}";
+                        $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&catName={$value2['clean_name']}&sort[created]=desc";
                         $section = new SectionFirstPage($value['name'], $title, $endpoint, $rowCount);
                         $countVideos += $section->totalRows;
                         $response->sections[] = $section;

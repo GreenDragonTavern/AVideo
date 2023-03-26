@@ -81,7 +81,7 @@ $metaDescription = __("Trending");
 
                                     <div class="galeryDetails col-lg-12" style="overflow: hidden;">
                                         <div>
-                                            <?php if (empty($_GET['catName'])) { ?>
+                                            <?php if (empty($_REQUEST['catName'])) { ?>
                                                 <a class="label label-default" href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $value['clean_category']; ?>/">
                                                     <?php
                                                     if (!empty($value['iconClass'])) {
@@ -141,7 +141,7 @@ $metaDescription = __("Trending");
                                         ?>
                                     </div>
                                     <div class="mainAreaDescriptionContainer  col-lg-12">
-                                        <h4 class="mainAreaDescription" itemprop="description" style="max-height: 7vw; padding: 0; margin: 5px 0;"><?php echo $value['description']; ?></h4>
+                                        <h4 class="mainAreaDescription" itemprop="description" style="max-height: 7vw; margin: 5px 0;"><?php echo $value['description']; ?></h4>
                                     </div>
                                 </div>
                             </div>

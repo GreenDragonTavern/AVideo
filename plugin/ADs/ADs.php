@@ -148,9 +148,9 @@ class ADs extends PluginAbstract
                 }
             }
         }
-        if (!empty($_GET['catName'])) {
+        if (!empty($_REQUEST['catName'])) {
             if (!empty($obj->tags3rdParty)) {
-                $v = Category::getCategoryByName($_GET['catName']);
+                $v = Category::getCategoryByName($_REQUEST['catName']);
                 if (!empty($v)) {
                     $head .= str_replace([',', '{ChannelName}', '{Category}'], ['', '', addcslashes($v["name"], "'")], $obj->tags3rdParty);
                     return $head;
@@ -279,8 +279,11 @@ class ADs extends PluginAbstract
     public static function getAdsFromVideosId($type, $videos_id = 0)
     {
         global $global;
+        
+        $emptyAd = ['adCode' => '', 'label' => '', 'paths' => array()];
+        
         if (isBot()) {
-            return false;
+            return $emptyAd;
         }
 
         if (empty($videos_id)) {
@@ -296,6 +299,9 @@ class ADs extends PluginAbstract
         }
         
         $ad = AVideoPlugin::getObjectDataIfEnabled('ADs');
+        if(empty($ad->$type)){
+            return $emptyAd;
+        }
         $label = '';
         eval("\$label = \$ad->{$type}Label;");
         $label = "{$label} [$users_id] [{$type}]";

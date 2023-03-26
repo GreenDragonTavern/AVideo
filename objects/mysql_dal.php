@@ -68,8 +68,12 @@ class sqlDAL
                  * @var array $global
                  * @var object $global['mysqli']
                  */
-                if (!$global['mysqli']->query($templine)) {
-                    _error_log('sqlDAL::executeFile ' . $filename . ' Error performing query \'<strong>' . $templine . '\': ' . $global['mysqli']->error . '<br /><br />', AVideoLog::$ERROR);
+                try {
+                    if (!$global['mysqli']->query($templine)) {
+                        _error_log('sqlDAL::executeFile ' . $filename . ' Error performing query \'<strong>' . $templine . '\': ' . $global['mysqli']->error . '<br /><br />', AVideoLog::$ERROR);
+                    }
+                } catch (\Throwable $th) {
+                    _error_log('sqlDAL::executeFile ' . $filename . ' Error performing query \'<strong>' . $templine . '\': ' . $global['mysqli']->error . '<br /><br /> '.$th->getMessage(), AVideoLog::$ERROR);
                 }
                 // Reset temp variable to empty
                 $templine = '';
@@ -228,8 +232,7 @@ class sqlDAL
                         " preparedStatement = " . json_encode($preparedStatement) .
                         " formats = " . json_encode($formats) .
                         " values = " . json_encode($values) .
-                        " refreshCache = " . json_encode($refreshCache) .
-                        " stmt = " . json_encode($stmt));
+                        " refreshCache = " . json_encode($refreshCache));
                     //log_error("[sqlDAL::readSql] trying close and reconnect");
                     _mysql_close();
                     _mysql_connect();
@@ -414,7 +417,12 @@ class sqlDAL
         // here, a cache is more/too difficult, because fetch gives always a next. with this kind of cache, we would give always the same.
         if ((function_exists('mysqli_fetch_all')) && ($disableMysqlNdMethods == false)) {
             if ($result !== false) {
-                return $result->fetch_assoc();
+                try {
+                    return $result->fetch_assoc();
+                } catch (\Throwable $th) {
+                    _error_log('fetchAssoc: '.$th->getMessage(), AVideoLog::$ERROR);
+                    return false;
+                }
             }
         } else {
             return self::iimysqli_result_fetch_assoc($result);

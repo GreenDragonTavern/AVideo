@@ -10,7 +10,7 @@ if (empty($advancedCustom)) {
     $advancedCustom = AVideoPlugin::getObjectData("CustomizeAdvanced");
 }
 TimeLogEnd($timeLogHead, __LINE__);
-if (is_object($video)) {
+if (!empty($video) && is_object($video)) {
     $video = Video::getVideoLight($video->getId());
 }
 TimeLogEnd($timeLogHead, __LINE__);
@@ -35,12 +35,14 @@ if (!empty($poster)) {
 }
 
 TimeLogEnd($timeLogHead, __LINE__);
-if (!empty($_GET['catName'])) {
-    $category = Category::getCategoryByName($_GET['catName']);
-    $description = str_replace(['"', "\n", "\r"], ["", "", ""], strip_tags($category['description']));
-    $custom = [];
-    $custom[] = $description;
-    $custom[] = $category['name'];
+if (!empty($_REQUEST['catName'])) {
+    $category = Category::getCategoryByName($_REQUEST['catName']);
+    if(!empty($category)){
+        $description = str_replace(['"', "\n", "\r"], ["", "", ""], strip_tags($category['description']));
+        $custom = [];
+        $custom[] = $description;
+        $custom[] = $category['name'];
+    }
 }
 
 TimeLogEnd($timeLogHead, __LINE__);
@@ -227,14 +229,14 @@ if (isRTL()) {
 </script>
 <?php
 if (!isOffline() && !$config->getDisable_analytics()) {
-    include_once $global['systemRootPath'] . 'view/include/ga.php';
+    //include_once $global['systemRootPath'] . 'view/include/ga.php';
 }
 TimeLogEnd($timeLogHead, __LINE__);
 if (!isBot()) {
-    echo $config->getHead();
+    echo fixTestURL($config->getHead());
 }
 TimeLogEnd($timeLogHead, __LINE__);
-echo $head;
+echo fixTestURL($head);
 if (!empty($video)) {
     if (!empty($video['users_id'])) {
         $userAnalytics = new User($video['users_id']);

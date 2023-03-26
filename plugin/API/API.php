@@ -3,37 +3,47 @@
 global $global;
 require_once $global['systemRootPath'] . 'plugin/Plugin.abstract.php';
 
-class API extends PluginAbstract {
+class API extends PluginAbstract
+{
 
-    public function getTags() {
+    public function getTags()
+    {
         return [
             PluginTags::$FREE,
             PluginTags::$MOBILE,
         ];
     }
 
-    public function getDescription() {
+    public function getDescription()
+    {
         return "Handle APIs for third party Applications";
     }
 
-    public function getName() {
+    public function getName()
+    {
         return "API";
     }
 
-    public function getUUID() {
+    public function getUUID()
+    {
         return "1apicbec-91db-4357-bb10-ee08b0913778";
     }
 
-    private static function addRowInfo($obj) {
+    private static function addRowInfo($obj)
+    {
         if (!isset($obj->current)) {
             $obj->current = getCurrentPage();
         }
+        if (!isset($obj->rowCount)) {
+            $obj->rowCount = getRowCount();
+        }
+
         $obj->hasMore = true;
-        if(!empty($obj->rows) && is_array($obj->rows)){
+        if (!empty($obj->rows) && is_array($obj->rows)) {
             if (count($obj->rows) < $obj->rowCount) {
                 $obj->hasMore = false;
             }
-        }else if(!empty($obj->videos) && is_array($obj->videos)){
+        } else if (!empty($obj->videos) && is_array($obj->videos)) {
             if (count($obj->videos) < $obj->rowCount) {
                 $obj->hasMore = false;
             }
@@ -44,20 +54,23 @@ class API extends PluginAbstract {
         return $obj;
     }
 
-    public function getEmptyDataObject() {
+    public function getEmptyDataObject()
+    {
         global $global;
         $obj = new stdClass();
         $obj->APISecret = md5($global['salt'] . $global['systemRootPath'] . 'API');
         return $obj;
     }
 
-    public function getPluginMenu() {
+    public function getPluginMenu()
+    {
         global $global;
         $fileAPIName = $global['systemRootPath'] . 'plugin/API/pluginMenu.html';
         return file_get_contents($fileAPIName);
     }
 
-    public function set($parameters) {
+    public function set($parameters)
+    {
         if (empty($parameters['APIName'])) {
             $object = new ApiObject("Parameter APIName can not be empty (set)");
         } else {
@@ -77,9 +90,11 @@ class API extends PluginAbstract {
                 eval($str);
             } else {
                 $method = "API_set_{$parameters['APIName']}";
-                if (!empty($parameters['APIPlugin']) &&
-                        AVideoPlugin::isEnabledByName($parameters['APIPlugin']) &&
-                        method_exists($parameters['APIPlugin'], $method)) {
+                if (
+                    !empty($parameters['APIPlugin']) &&
+                    AVideoPlugin::isEnabledByName($parameters['APIPlugin']) &&
+                    method_exists($parameters['APIPlugin'], $method)
+                ) {
                     $str = "\$object = {$parameters['APIPlugin']}::{$method}(\$parameters);";
                     eval($str);
                 } else {
@@ -90,7 +105,8 @@ class API extends PluginAbstract {
         return $object;
     }
 
-    public function get($parameters) {
+    public function get($parameters)
+    {
         if (empty($parameters['APIName'])) {
             $object = new ApiObject("Parameter APIName can not be empty (get)");
         } else {
@@ -110,9 +126,11 @@ class API extends PluginAbstract {
                 eval($str);
             } else {
                 $method = "API_get_{$parameters['APIName']}";
-                if (!empty($parameters['APIPlugin']) &&
-                        AVideoPlugin::isEnabledByName($parameters['APIPlugin']) &&
-                        method_exists($parameters['APIPlugin'], $method)) {
+                if (
+                    !empty($parameters['APIPlugin']) &&
+                    AVideoPlugin::isEnabledByName($parameters['APIPlugin']) &&
+                    method_exists($parameters['APIPlugin'], $method)
+                ) {
                     $str = "\$object = {$parameters['APIPlugin']}::{$method}(\$parameters);";
                     eval($str);
                 } else {
@@ -123,7 +141,8 @@ class API extends PluginAbstract {
         return $object;
     }
 
-    private function startResponseObject($parameters) {
+    private function startResponseObject($parameters)
+    {
         $obj = new stdClass();
         if (empty($parameters['sort']) && !empty($parameters['order'][0]['dir'])) {
             $index = intval($parameters['order'][0]['column']);
@@ -140,7 +159,8 @@ class API extends PluginAbstract {
         return $obj;
     }
 
-    private function getToPost() {
+    private function getToPost()
+    {
         foreach ($_GET as $key => $value) {
             $_POST[$key] = $value;
         }
@@ -153,7 +173,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&rowCount=3&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_plugin_parameters($parameters) {
+    public function get_api_plugin_parameters($parameters)
+    {
         global $global;
         $name = "get_api_plugin_parameters" . json_encode($parameters);
         $obj = ObjectYPT::getCache($name, 3600);
@@ -179,7 +200,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return \ApiObject
      */
-    public function get_api_id($parameters) {
+    public function get_api_id($parameters)
+    {
         global $global;
         $obj = $this->startResponseObject($parameters);
         $obj->id = getPlatformId();
@@ -196,7 +218,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&userAgent=Mozilla%2F5.0+%28Windows+NT+10.0%3B+Win64%3B+x64%29+AppleWebKit%2F537.36+%28KHTML%2C+like+Gecko%29+Chrome%2F89.0.4389.82+Safari%2F537.36
      * @return \ApiObject
      */
-    public function get_api_is_mobile($parameters) {
+    public function get_api_is_mobile($parameters)
+    {
         global $global;
         $obj = $this->startResponseObject($parameters);
         if (!empty($_REQUEST['httpHeaders'])) {
@@ -224,7 +247,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&rowCount=3&current=1&sort[created]=DESC
      * @return \ApiObject
      */
-    public function get_api_category($parameters) {
+    public function get_api_category($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/category.php';
         $obj = $this->startResponseObject($parameters);
@@ -284,7 +308,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&playlists_id=1&index=2&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_video_from_program($parameters) {
+    public function get_api_video_from_program($parameters)
+    {
         global $global;
         $playlists = AVideoPlugin::loadPlugin("PlayLists");
         if (empty($parameters['playlists_id'])) {
@@ -337,7 +362,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&playlists_id=1&index=2&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_audio_from_program($parameters) {
+    public function get_api_audio_from_program($parameters)
+    {
         $parameters['audioOnly'] = 1;
         return $this->get_api_video_from_program($parameters);
     }
@@ -347,7 +373,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return \ApiObject
      */
-    public function get_api_suggested_programs($parameters) {
+    public function get_api_suggested_programs($parameters)
+    {
         global $global;
         $playlists = AVideoPlugin::loadPlugin("PlayLists");
         //var_dump($videos);exit;
@@ -390,7 +417,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return \ApiObject
      */
-    public function get_api_tags($parameters) {
+    public function get_api_tags($parameters)
+    {
         global $global;
         $vtags = AVideoPlugin::loadPluginIfEnabled("VideoTags");
 
@@ -425,7 +453,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_video_file($parameters) {
+    public function get_api_video_file($parameters)
+    {
         global $global;
         $obj = $this->startResponseObject($parameters);
         $obj->videos_id = $parameters['videos_id'];
@@ -444,6 +473,8 @@ class API extends PluginAbstract {
 
     /**
      * @param string $parameters
+     * Obs: in the Trending sort also pass the current=1, otherwise it will return a random order
+     * 
      * ['APISecret' to list all videos]
      * ['sort' database sort column]
      * ['videos_id' the video id (will return only 1 or 0 video)]
@@ -455,7 +486,7 @@ class API extends PluginAbstract {
      * ['catName' the clean_APIName of the category you want to filter]
      * ['channelName' the channelName of the videos you want to filter]
      * ['playlist' use playlist=1 to get a response compatible with the playlist endpoint]
-     * ['videoType' the type of the video, the valid options are 'audio', 'video', 'embed', 'linkVideo', 'linkAudio', 'torrent', 'pdf', 'image', 'gallery', 'article', 'serie', 'image', 'zip', 'notfound', 'blockedUser']
+     * ['videoType' the type of the video, the valid options are 'audio_and_video', 'audio', 'video', 'embed', 'linkVideo', 'linkAudio', 'torrent', 'pdf', 'image', 'gallery', 'article', 'serie', 'image', 'zip', 'notfound', 'blockedUser']
      * ['is_serie' if is 0 return only videos, if is 1 return only series, if is not set, return all]
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&catName=default&rowCount=10
      * @example Suggested ----> {webSiteRootURL}plugin/API/get.json.php?APIName={APIName}&rowCount=10&sort[suggested]=1
@@ -464,12 +495,13 @@ class API extends PluginAbstract {
      * @example MostWatched ----> {webSiteRootURL}plugin/API/get.json.php?APIName={APIName}&rowCount=10&sort[views_count]=desc
      * @return \ApiObject
      */
-    public function get_api_video($parameters) {
+    public function get_api_video($parameters)
+    {
         $start = microtime(true);
 
-        $cacheParameters = array('noRelated','APIName', 'catName', 'rowCount', 'APISecret', 'sort', 'searchPhrase', 'current', 'tags_id', 'channelName', 'videoType', 'is_serie', 'user', 'videos_id', 'playlist');
+        $cacheParameters = array('noRelated', 'APIName', 'catName', 'rowCount', 'APISecret', 'sort', 'searchPhrase', 'current', 'tags_id', 'channelName', 'videoType', 'is_serie', 'user', 'videos_id', 'playlist');
 
-        $cacheVars = array();
+        $cacheVars = array('users_id' => User::getId());
         foreach ($cacheParameters as $value) {
             $cacheVars[$value] = @$_REQUEST[$value];
         }
@@ -509,14 +541,16 @@ class API extends PluginAbstract {
         }
 
         if (!empty($_REQUEST['catName']) && empty($parameters['videos_id'])) {
-            $currentCat = Category::getCategoryByName($_REQUEST['catName']); 
+            $currentCat = Category::getCategoryByName($_REQUEST['catName']);
             if (!empty($currentCat)) {
-                $liveVideos = getLiveVideosFromCategory($currentCat['id']);
-                if (!empty($liveVideos)) {
-                    $rows = array_merge($liveVideos, $rows);
-                    $totalRows += count($liveVideos);
+                if (empty($parameters['videoType'])) {
+                    $liveVideos = getLiveVideosFromCategory($currentCat['id']);
+                    if (!empty($liveVideos)) {
+                        $rows = array_merge($liveVideos, $rows);
+                        $totalRows += count($liveVideos);
+                    }
                 }
-                
+
                 $fullTotals = Category::getTotalFromCategory($currentCat['id'], false, true, true);
                 $totals = Category::getTotalFromCategory($currentCat['id']);
                 $currentCat['total'] = $totals['total'];
@@ -525,18 +559,18 @@ class API extends PluginAbstract {
                 $currentCat['fullTotal_lives'] = $fullTotals['lives'];
                 $currentCat['fullTotal_livelinks'] = $fullTotals['livelinks'];
                 $currentCat['fullTotal_livelinks'] = $fullTotals['livelinks'];
-                
+
                 $currentCat['totalVideosOnChilds'] = Category::getTotalFromChildCategory($currentCat['id']);
                 $currentCat['childs'] = Category::getChildCategories($currentCat['id']);
                 $currentCat['photo'] = Category::getCategoryPhotoPath($currentCat['id']);
                 $currentCat['photoBg'] = Category::getCategoryBackgroundPath($currentCat['id']);
-                $currentCat['link'] = $global['webSiteRootURL'] . 'cat/' . $currentCat['clean_name'];   
-            
+                $currentCat['link'] = $global['webSiteRootURL'] . 'cat/' . $currentCat['clean_name'];
+
                 foreach ($currentCat['childs'] as $key => $child) {
                     $endpoint = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIName=video&catName={$child['clean_name']}";
                     $currentCat['childs'][$key]['section'] = new SectionFirstPage('SubCategroy', $child['name'], $endpoint, getRowCount());
                 }
-                $obj->category = $currentCat; 
+                $obj->category = $currentCat;
             }
         }
 
@@ -571,7 +605,8 @@ class API extends PluginAbstract {
                         )
                     );
                 } else if ($extension == 'm3u8') {
-                    $rows[$key]['videos'] = array('m3u8' => array(
+                    $rows[$key]['videos'] = array(
+                        'm3u8' => array(
                             'url' => $rows[$key]['videoLink'],
                             'url_noCDN' => $rows[$key]['videoLink'],
                             'type' => 'video',
@@ -594,10 +629,10 @@ class API extends PluginAbstract {
             $rows[$key]['isSubscribed'] = false;
 
             //make playlist compatible
-            if(!empty($parameters['playlist'])){
+            if (!empty($parameters['playlist'])) {
                 $rows[$key]['mp3'] = convertVideoToMP3FileIfNotExists($value['id']);
                 $rows[$key]['category_name'] = $value['category'];
-                $rows[$key]['category'] = array('name'=>$rows[$key]['category_name']);
+                $rows[$key]['category'] = array('name' => $rows[$key]['category_name']);
                 $rows[$key]['channel_name'] = User::_getChannelName($rows[$key]['users_id']);;
             }
 
@@ -656,10 +691,10 @@ class API extends PluginAbstract {
             }
         }
         $obj->totalRows = $totalRows;
-        
-        if(!empty($parameters['playlist'])){            
+
+        if (!empty($parameters['playlist'])) {
             $obj->videos = $rows;
-        }else{
+        } else {
             $obj->rows = $rows;
         }
         $obj = self::addRowInfo($obj);
@@ -678,7 +713,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_videosCount($parameters) {
+    public function get_api_videosCount($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         $obj = $this->startResponseObject($parameters);
@@ -702,7 +738,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&user=admin&pass=123&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_video_delete($parameters) {
+    public function get_api_video_delete($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         $obj = $this->startResponseObject($parameters);
@@ -735,7 +772,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&user=admin&pass=123&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function set_api_comment($parameters) {
+    public function set_api_comment($parameters)
+    {
         global $global;
         $obj = $this->startResponseObject($parameters);
         if (!empty($parameters['videos_id'])) {
@@ -777,7 +815,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&user=admin&pass=123&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_comment($parameters) {
+    public function get_api_comment($parameters)
+    {
         global $global;
         $obj = $this->startResponseObject($parameters);
         if (!empty($parameters['videos_id'])) {
@@ -804,6 +843,151 @@ class API extends PluginAbstract {
 
     /**
      * @param string $parameters
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
+     * ['live_schedule_id' if you pass it will return a specific live_schedule record]
+     * 'user' username of the user that will like the video
+     * 'pass' password  of the user that will like the video
+     * @return \ApiObject
+     */
+    public function get_api_live_schedule($parameters)
+    {
+        if (!User::canStream()) {
+            return new ApiObject("You cannot stream");
+        } else {
+            $users_id = User::getId();
+            $_POST['sort'] = array('scheduled_time' => 'DESC');
+            if (empty($parameters['live_schedule_id'])) {
+                $obj = Live_schedule::getAll($users_id);
+            } else {
+                $row = Live_schedule::getFromDb($parameters['live_schedule_id']);
+                if ($row['users_id'] != $users_id) {
+                    return new ApiObject("This live schedule does not belong to you");
+                } else {
+                    $obj = $row;
+                }
+            }
+        }
+        return new ApiObject("", false, $obj);
+    }
+
+    /**
+     * @param string $parameters
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
+     * ['live_schedule_id' if you pass it will return a specific live_schedule record]
+     * 'user' username of the user that will like the video
+     * 'pass' password  of the user that will like the video
+     * @return \ApiObject
+     */
+    public function set_api_live_schedule_delete($parameters)
+    {
+        if (!User::canStream()) {
+            return new ApiObject("You cannot stream");
+        } else {
+            $users_id = User::getId();
+            if (empty($parameters['live_schedule_id'])) {
+                return new ApiObject("live_schedule_id cannot be empty");
+            } else {
+                $row = new Live_schedule($parameters['live_schedule_id']);
+                if ($row->getUsers_id() != $users_id) {
+                    return new ApiObject("This live schedule does not belong to you");
+                } else {
+                    $obj = $row->delete();
+                }
+            }
+        }
+        return new ApiObject("", false, $obj);
+    }
+
+    /**
+     * @param string $parameters
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
+     * ['live_servers_id' by default it is 0]
+     * ['live_schedule_id' if you pass it want to edit a specific record]
+     * ['base64PNGImageRegular' a png image base64 encoded]
+     * ['base64PNGImagePreRoll' a png image base64 encoded]
+     * ['base64PNGImagePostRoll' a png image base64 encoded]
+     * 'title' 
+     * 'description' 
+     * 'scheduled_time' pass it in the YYYY-mm-dd HH:ii:ss format
+     * 'status' a for active or i for inactive
+     * 'scheduled_password' 
+     * 'user' username of the user that will like the video
+     * 'pass' password  of the user that will like the video
+     * @return \ApiObject
+     */
+    public function set_api_live_schedule($parameters)
+    {
+        $live_schedule_id = 0;
+        $obj = new stdClass();
+        if (!User::canStream()) {
+            return new ApiObject("You cannot stream");
+        } else {
+            $users_id = User::getId();
+            if (empty($parameters['live_schedule_id'])) {
+                if (empty($parameters['title'])) {
+                    return new ApiObject("Title cannot be empty");
+                }
+                if (empty($parameters['scheduled_time'])) {
+                    return new ApiObject("scheduled_time cannot be empty");
+                }
+                if (empty($parameters['status']) || $parameters['status'] !== 'i') {
+                    $parameters['status'] = 'a';
+                }
+                $o = new Live_schedule(0);
+            } else {
+                $o = new Live_schedule($parameters['live_schedule_id']);
+                if ($o->getUsers_id() != $users_id) {
+                    return new ApiObject("This live schedule does not belong to you");
+                } else {
+                    $o = new Live_schedule($parameters['live_schedule_id']);
+                }
+            }
+            //var_dump($parameters);exit;
+            if (isset($parameters['title'])) {
+                $o->setTitle($parameters['title']);
+            }
+            if (isset($parameters['description'])) {
+                $o->setDescription($parameters['description']);
+            }
+            if (isset($parameters['live_servers_id'])) {
+                $o->setLive_servers_id($parameters['live_servers_id']);
+            }
+            if (isset($parameters['scheduled_time'])) {
+                $o->setScheduled_time($parameters['scheduled_time']);
+            }
+            if (isset($parameters['status'])) {
+                $o->setStatus($parameters['status']);
+            }
+            if (isset($parameters['scheduled_password'])) {
+                $o->setScheduled_password($parameters['scheduled_password']);
+            }
+
+            $o->setUsers_id($users_id);
+            $live_schedule_id = $o->save();
+            if ($live_schedule_id) {
+                if (!empty($parameters['base64PNGImageRegular'])) {
+                    $image = Live_schedule::getPosterPaths($live_schedule_id, Live::$posterType_regular);
+                    saveBase64DataToPNGImage($parameters['base64PNGImageRegular'], $image['path']);
+                }
+                if (!empty($parameters['base64PNGImagePreRoll'])) {
+                    $image = Live_schedule::getPosterPaths($live_schedule_id, Live::$posterType_preroll);
+                    saveBase64DataToPNGImage($parameters['base64PNGImagePreRoll'], $image['path']);
+                }
+                if (!empty($parameters['base64PNGImagePostRoll'])) {
+                    $image = Live_schedule::getPosterPaths($live_schedule_id, Live::$posterType_postroll);
+                    saveBase64DataToPNGImage($parameters['base64PNGImagePostRoll'], $image['path']);
+                }
+
+
+                $o = new Live_schedule($live_schedule_id);
+                $obj->live_schedule_id = $live_schedule_id;
+            }
+        }
+        return new ApiObject("", empty($live_schedule_id), $obj);
+    }
+
+    /**
+     * @param string $parameters
      * 'videos_id' the video id that will be deleted
      * 'title' the video title
      * 'status' the video status
@@ -813,7 +997,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&user=admin&pass=123&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function set_api_video_save($parameters) {
+    public function set_api_video_save($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         $obj = $this->startResponseObject($parameters);
@@ -847,7 +1032,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return \ApiObject
      */
-    public function get_api_livestreams($parameters) {
+    public function get_api_livestreams($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'plugin/Live/stats.json.php';
         exit;
@@ -865,7 +1051,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&users_id=1
      * @return \ApiObject
      */
-    public function set_api_livestream_save($parameters) {
+    public function set_api_livestream_save($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         $obj = $this->startResponseObject($parameters);
@@ -911,7 +1098,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&users_id=1
      * @return \ApiObject
      */
-    public function get_api_user($parameters) {
+    public function get_api_user($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         $obj = $this->startResponseObject($parameters);
@@ -925,7 +1113,7 @@ class API extends PluginAbstract {
 
         $user = new User($parameters['users_id']);
         if (empty($user->getUser())) {
-            return new ApiObject("User Not defined");
+            return new ApiObject("User Not found");
         }
         $p = AVideoPlugin::loadPlugin("Live");
 
@@ -934,7 +1122,7 @@ class API extends PluginAbstract {
         unset($obj->user['externalOptions']);
         unset($obj->user['extra_info']);
         $obj->user['canStream'] = $obj->user['canStream'] || $obj->user['isAdmin'];
-        $obj->user['DonationButtons'] = _json_decode($obj->user['DonationButtons']);
+        $obj->user['DonationButtons'] = _json_decode(@$obj->user['DonationButtons']);
 
         $obj->livestream = LiveTransmition::createTransmitionIfNeed($user->getBdId());
         $obj->livestream["users_id"] = $user->getBdId();
@@ -986,7 +1174,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&status=a&rowCount=3&searchPhrase=test
      * @return \ApiObject
      */
-    public function get_api_users_list($parameters) {
+    public function get_api_users_list($parameters)
+    {
         global $global;
         $obj = $this->startResponseObject($parameters);
         if (self::isAPISecretValid()) {
@@ -1022,7 +1211,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_videosViewsCount($parameters) {
+    public function get_api_videosViewsCount($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         $obj = $this->startResponseObject($parameters);
@@ -1058,7 +1248,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return \ApiObject
      */
-    public function get_api_channels($parameters) {
+    public function get_api_channels($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/Channel.php';
         $channels = Channel::getChannels();
@@ -1078,34 +1269,58 @@ class API extends PluginAbstract {
 
     /**
      * @param string $parameters
+     * Return a single Program (Playlists) on this site
+     * 'playlists_id' 
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&playlists_id=12
+     * @return \ApiObject
+     */
+    public function get_api_program($parameters)
+    {
+        global $global;
+        if(empty($parameters['playlists_id'])){
+            return new ApiObject("playlists_id is required");
+        }
+        require_once $global['systemRootPath'] . 'objects/playlist.php';
+        $obj = new PlayList($parameters['playlists_id']);
+        if(empty($obj)){
+            forbiddenPage();
+        }
+        if(!empty($obj->getUsers_id())){
+            forbidIfItIsNotMyUsersId($obj->getUsers_id());
+        }
+        $obj = new stdClass();
+        $obj->videos = PlayList::getAllFromPlaylistsID($parameters['playlists_id']);
+
+        return new ApiObject("", false, $obj);
+    }
+    /**
+     * @param string $parameters
      * Return all Programs (Playlists) on this site
+     * ['onlyWithVideos' can be 0 or 1 return only programs that contain videos, the default is 1]
+     * ['returnFavoriteAndWatchLater' can be 0 or 1, the default is 0]
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return \ApiObject
      */
-    public function get_api_programs($parameters) {
+    public function get_api_programs($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/playlist.php';
 
         $config = new Configuration();
         $users_id = User::getId();
         $list = [];
-        $obj = new stdClass();
-        $obj->id = 0;
-        $obj->photo = $config->getFavicon(true);
-        $obj->channelLink = $global['webSiteRootURL'];
-        $obj->username = $config->getWebSiteTitle();
-        $obj->name = __('Date added');
-        $obj->link = $global['webSiteRootURL'];
-        $_POST['sort']['created'] = 'DESC';
-        $obj->videos = PlayList::getVideosIDFromPlaylistLight(0);
-        $list[] = $obj;
         if (!empty($users_id)) {
             //getAllFromUserLight($userId, $publicOnly = true, $status = false, $playlists_id = 0, $onlyWithVideos = false, $includeSeries = false)
-            $playlists = PlayList::getAllFromUserLight($users_id, false, false, 0, true, true);
+            $playlists = PlayList::getAllFromUserLight($users_id, false, false, 0, _empty($parameters['onlyWithVideos']) ? 0 : 1, true);
             foreach ($playlists as $value) {
                 $videosArrayId = PlayList::getVideosIdFromPlaylist($value['id']);
-                if (empty($videosArrayId) || $value['status'] == "favorite" || $value['status'] == "watch_later") {
+                if (!_empty($parameters['onlyWithVideos']) && empty($videosArrayId)) {
                     continue;
+                }
+                if (_empty($parameters['returnFavoriteAndWatchLater'])) {
+                    if ($value['status'] == "favorite" || $value['status'] == "watch_later") {
+                        continue;
+                    }
                 }
                 $obj = new stdClass();
                 $obj->id = $value['id'];
@@ -1113,6 +1328,7 @@ class API extends PluginAbstract {
                 $obj->channelLink = User::getChannelLink($value['users_id']);
                 $obj->username = User::getNameIdentificationById($value['users_id']);
                 $obj->name = $value['name'];
+                $obj->status = $value['status'];
                 $obj->link = PlayLists::getLink($value['id']);
                 $obj->videos = $value['videos'];
                 $list[] = $obj;
@@ -1123,12 +1339,137 @@ class API extends PluginAbstract {
 
     /**
      * @param string $parameters
+     * Create new programs 
+     * 'name' the new program name 
+     * 'status' the new program status ['public', 'private', 'unlisted', 'favorite', 'watch_later']
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&name=NewPL&status=unlisted
+     * @return \ApiObject
+     */
+    public function set_api_create_programs($parameters)
+    {
+        global $global;
+        require_once $global['systemRootPath'] . 'objects/playlist.php';
+        $users_id = User::getId();
+        if (empty($users_id)) {
+            return new ApiObject("You must login first");
+        }
+        $array = array('name');
+        foreach ($array as $value) {
+            if (empty($parameters[$value])) {
+                return new ApiObject("{$value} cannot be empty");
+            }
+        }
+
+        $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
+        if (empty($plugin)) {
+            return new ApiObject("Plugin not enabled");
+        }
+
+        $playList = new PlayList(0);
+        $playList->setName($parameters['name']);
+        $playList->setStatus(@$parameters['status']);
+
+        $obj = new stdClass();
+        $obj->error = empty($playList->save());
+
+        return new ApiObject("", false, $obj);
+    }
+
+/**
+     * @param string $parameters
+     * Delete programs 
+     * 'playlists_id' the id of the program you want to delete 
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&playlists_id=12
+     * @return \ApiObject
+     */
+    public function set_api_delete_programs($parameters)
+    {
+        global $global;
+        require_once $global['systemRootPath'] . 'objects/playlist.php';
+        $users_id = User::getId();
+        if (empty($users_id)) {
+            return new ApiObject("You must login first");
+        }
+        $array = array('playlists_id');
+        foreach ($array as $value) {
+            if (empty($parameters[$value])) {
+                return new ApiObject("{$value} cannot be empty");
+            }
+        }
+
+        $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
+        if (empty($plugin)) {
+            return new ApiObject("Plugin not enabled");
+        }
+        
+        $playList = new PlayList($parameters['playlists_id']);
+        if (empty($playList) || User::getId() !== $playList->getUsers_id()) {
+            return new ApiObject("Permission denied");
+        }
+
+        $obj = new stdClass();
+        $obj->error = empty($playList->delete());
+
+        return new ApiObject("", false, $obj);
+    }
+
+    /**
+     * @param string $parameters
+     * Return all Programs (Playlists) on this site
+     * 'videos_id' 
+     * 'playlists_id' , 
+     * 'add' 1 = will add, 0 = will remove, 
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=11&playlists_id=10&add=1
+     * @return \ApiObject
+     */
+    public function set_api_programs($parameters)
+    {
+        global $global;
+        require_once $global['systemRootPath'] . 'objects/playlist.php';
+        $users_id = User::getId();
+        if (empty($users_id)) {
+            return new ApiObject("You must login first");
+        }
+        $array = array('videos_id', 'playlists_id');
+        foreach ($array as $value) {
+            if (empty($parameters[$value])) {
+                return new ApiObject("{$value} cannot be empty");
+            }
+        }
+
+        $obj = new stdClass();
+        $obj->error = true;
+        $obj->status = 0;
+
+        $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
+        if (empty($plugin)) {
+            return new ApiObject("Plugin not enabled");
+        }
+
+        if (!PlayLists::canAddVideoOnPlaylist($parameters['videos_id'])) {
+            return new ApiObject("You can not add this video on playlist");
+        }
+
+        $playList = new PlayList($parameters['playlists_id']);
+        if (empty($playList) || User::getId() !== $playList->getUsers_id() || empty($parameters['videos_id'])) {
+            return new ApiObject("Permission denied");
+        }
+
+        $obj->error = false;
+        $obj->status = $playList->addVideo($parameters['videos_id'], $parameters['add']);
+
+        return new ApiObject("", false, $obj);
+    }
+
+    /**
+     * @param string $parameters
      * Return all Subscribers from an user
      * 'users_id' users ID
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?users_id=1&APIName={APIName}&APISecret={APISecret}
      * @return \ApiObject
      */
-    public function get_api_subscribers($parameters) {
+    public function get_api_subscribers($parameters)
+    {
         global $global;
 
         $name = "get_api_subscribers" . json_encode($parameters);
@@ -1154,7 +1495,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return \ApiObject
      */
-    public function get_api_categories($parameters) {
+    public function get_api_categories($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/category.php';
         $categories = Category::getAllCategories();
@@ -1179,7 +1521,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1
      * @return \ApiObject
      */
-    public function get_api_likes($parameters) {
+    public function get_api_likes($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/like.php';
         if (empty($parameters['videos_id'])) {
@@ -1196,7 +1539,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&user=admin&pass=123
      * @return \ApiObject
      */
-    public function set_api_like($parameters) {
+    public function set_api_like($parameters)
+    {
         return $this->like($parameters, 1);
     }
 
@@ -1208,7 +1552,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&user=admin&pass=123
      * @return \ApiObject
      */
-    public function set_api_dislike($parameters) {
+    public function set_api_dislike($parameters)
+    {
         return $this->like($parameters, -1);
     }
 
@@ -1220,7 +1565,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=1&user=admin&pass=123
      * @return \ApiObject
      */
-    public function set_api_removelike($parameters) {
+    public function set_api_removelike($parameters)
+    {
         return $this->like($parameters, 0);
     }
 
@@ -1233,7 +1579,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function get_api_signIn($parameters) {
+    public function get_api_signIn($parameters)
+    {
         global $global;
         $this->getToPost();
         require_once $global['systemRootPath'] . 'objects/login.json.php';
@@ -1255,7 +1602,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&user=admin&pass=123&email=me@mysite.com&name=Yeshua
      * @return string
      */
-    public function set_api_signUp($parameters) {
+    public function set_api_signUp($parameters)
+    {
         global $global;
         $this->getToPost();
         $obj = $this->getDataObject();
@@ -1279,7 +1627,8 @@ class API extends PluginAbstract {
         exit;
     }
 
-    private function like($parameters, $like) {
+    private function like($parameters, $like)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/like.php';
         if (empty($parameters['videos_id'])) {
@@ -1304,7 +1653,8 @@ class API extends PluginAbstract {
      * @example for JSON response: {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true&optionalAdTagUrl=2&json=1
      * @return string
      */
-    public function get_api_vmap($parameters) {
+    public function get_api_vmap($parameters)
+    {
         global $global;
         $this->getToPost();
         require_once $global['systemRootPath'] . 'plugin/GoogleAds_IMA/VMAP.php';
@@ -1322,7 +1672,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true&optionalAdTagUrl=2
      * @return string
      */
-    public function get_api_vast($parameters) {
+    public function get_api_vast($parameters)
+    {
         global $global;
         $this->getToPost();
         $vastOnly = 1;
@@ -1338,7 +1689,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&ip=2.20.147.123
      * @return string
      */
-    public function get_api_IP2Location($parameters) {
+    public function get_api_IP2Location($parameters)
+    {
         global $global;
         $this->getToPost();
         $obj = $this->getDataObject();
@@ -1364,7 +1716,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function get_api_favorite($parameters) {
+    public function get_api_favorite($parameters)
+    {
         $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
         if (empty($plugin)) {
             return new ApiObject("Plugin disabled");
@@ -1398,7 +1751,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function set_api_favorite($parameters) {
+    public function set_api_favorite($parameters)
+    {
         $this->favorite($parameters, true);
     }
 
@@ -1411,11 +1765,13 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function set_api_removeFavorite($parameters) {
+    public function set_api_removeFavorite($parameters)
+    {
         $this->favorite($parameters, false);
     }
 
-    private function favorite($parameters, $add) {
+    private function favorite($parameters, $add)
+    {
         global $global;
         $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
         if (empty($plugin)) {
@@ -1440,7 +1796,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function get_api_watch_later($parameters) {
+    public function get_api_watch_later($parameters)
+    {
         $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
         if (empty($plugin)) {
             return new ApiObject("Plugin disabled");
@@ -1479,7 +1836,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function set_api_watch_later($parameters) {
+    public function set_api_watch_later($parameters)
+    {
         $this->watch_later($parameters, true);
     }
 
@@ -1492,11 +1850,13 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function set_api_removeWatch_later($parameters) {
+    public function set_api_removeWatch_later($parameters)
+    {
         $this->watch_later($parameters, false);
     }
 
-    private function watch_later($parameters, $add) {
+    private function watch_later($parameters, $add)
+    {
         global $global;
         $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
         if (empty($plugin)) {
@@ -1525,7 +1885,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&message=HelloWorld&users_id=2&room_users_id=4&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function set_api_chat2_message($parameters) {
+    public function set_api_chat2_message($parameters)
+    {
         global $global;
         $plugin = AVideoPlugin::loadPluginIfEnabled("Chat2");
         if (empty($plugin)) {
@@ -1555,7 +1916,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&greater_then_id=88&lower_then_id=98&to_users_id=2&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function get_api_chat2_chat($parameters) {
+    public function get_api_chat2_chat($parameters)
+    {
         global $global;
         $plugin = AVideoPlugin::loadPluginIfEnabled("Chat2");
         if (empty($plugin)) {
@@ -1595,7 +1957,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&greater_then_id=88&lower_then_id=98&room_users_id=2&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function get_api_chat2_room($parameters) {
+    public function get_api_chat2_room($parameters)
+    {
         global $global;
         $plugin = AVideoPlugin::loadPluginIfEnabled("Chat2");
         if (empty($plugin)) {
@@ -1621,7 +1984,8 @@ class API extends PluginAbstract {
         exit;
     }
 
-    public static function getAPISecret() {
+    public static function getAPISecret()
+    {
         $obj = AVideoPlugin::getDataObject("API");
         return $obj->APISecret;
     }
@@ -1632,7 +1996,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}
      * @return string
      */
-    public function get_api_locales($parameters) {
+    public function get_api_locales($parameters)
+    {
         global $global, $config;
         $langs = new stdClass();
         $langs->default = $config->getLanguage();
@@ -1648,7 +2013,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&language=cn
      * @return string
      */
-    public function get_api_locale($parameters) {
+    public function get_api_locale($parameters)
+    {
         global $global, $config;
         $obj = $this->startResponseObject($parameters);
 
@@ -1677,7 +2043,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&user=admin
      * @return \ApiObject
      */
-    public function set_api_userImages($parameters) {
+    public function set_api_userImages($parameters)
+    {
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         if (self::isAPISecretValid()) {
@@ -1705,7 +2072,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
      * @return string
      */
-    public function get_api_meet($parameters) {
+    public function get_api_meet($parameters)
+    {
         global $global;
         $meet = AVideoPlugin::loadPluginIfEnabled('Meet');
         if ($meet) {
@@ -1755,7 +2123,8 @@ class API extends PluginAbstract {
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true&RoomTopic=APITestMeet
      * @return string
      */
-    public function set_api_meet($parameters) {
+    public function set_api_meet($parameters)
+    {
         global $global;
         $meet = AVideoPlugin::loadPluginIfEnabled('Meet');
         if ($meet) {
@@ -1771,7 +2140,8 @@ class API extends PluginAbstract {
         exit;
     }
 
-    public static function isAPISecretValid() {
+    public static function isAPISecretValid()
+    {
         global $global;
         if (!empty($_REQUEST['APISecret'])) {
             $dataObj = AVideoPlugin::getDataObject('API');
@@ -1782,18 +2152,20 @@ class API extends PluginAbstract {
         }
         return false;
     }
-
 }
 
-class ApiObject {
+class ApiObject
+{
 
     public $error;
     public $message;
     public $response;
     public $msg;
     public $users_id;
+    public $session_id;
 
-    public function __construct($message = "api not started or not found", $error = true, $response = []) {
+    public function __construct($message = "api not started or not found", $error = true, $response = [])
+    {
         $response = cleanUpRowFromDatabase($response);
 
         $this->error = $error;
@@ -1801,11 +2173,12 @@ class ApiObject {
         $this->message = $message;
         $this->response = $response;
         $this->users_id = User::getId();
+        $this->session_id = session_id();
     }
-
 }
 
-class SectionFirstPage {
+class SectionFirstPage
+{
 
     public $type;
     public $title;
@@ -1817,7 +2190,11 @@ class SectionFirstPage {
     public $childs;
 
     // Add constructor, getter, and setter here
-    public function __construct($type, $title, $endpoint, $rowCount, $childs = array()) {
+    public function __construct($type, $title, $endpoint, $rowCount, $childs = array())
+    {
+        global $global;
+        $endpoint = addQueryStringParameter($endpoint, 'current', 1);
+        $endpoint = addQueryStringParameter($endpoint, 'videoType', 'audio_and_video');
         $endpoint = addQueryStringParameter($endpoint, 'noRelated', 1);
         $this->type = $type;
         $this->title = $title;
@@ -1825,10 +2202,22 @@ class SectionFirstPage {
         $this->nextEndpoint = addQueryStringParameter($endpoint, 'current', 2);
         $this->rowCount = $rowCount;
         $endpointURL = addQueryStringParameter($endpoint, 'rowCount', $rowCount);
-        $response = json_decode(url_get_contents($endpointURL));
+        if (User::isLogged()) {
+
+            $endpointURL = addQueryStringParameter($endpointURL, 'user', User::getUserName());
+            $endpointURL = addQueryStringParameter($endpointURL, 'pass', User::getUserPass());
+            $endpointURL = addQueryStringParameter($endpointURL, 'webSiteRootURL', $global['webSiteRootURL']);
+
+            //$endpointURL = addQueryStringParameter($endpointURL, 'PHPSESSID', session_id());
+        }
+        $response = json_decode(url_get_contents($endpointURL, '', 2, false, true));
+        /*
+          if(User::isLogged()){
+          session_id($response->session_id);
+          }
+         */
         $this->endpointResponse = $response->response;
         $this->totalRows = $this->endpointResponse->totalRows;
         $this->childs = $childs;
     }
-
 }

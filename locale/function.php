@@ -1,15 +1,18 @@
 <?php
 
-if (empty($config)) {
-    return true;
-}
-
 // filter some security here
 if (!empty($_GET['lang'])) {
     $_GET['lang'] = str_replace(["'", '"', "&quot;", "&#039;"], ['', '', '', ''], xss_esc($_GET['lang']));
 }
 
-@include_once "{$global['systemRootPath']}locale/{$_SESSION['language']}.php";
+includeLangFile();
+
+function includeLangFile()
+{
+    global $t;
+    setSiteLang();
+    @include_once "{$global['systemRootPath']}locale/{$_SESSION['language']}.php";
+}
 
 function __($str, $allowHTML = false)
 {
@@ -120,23 +123,33 @@ function flag2Lang($flagCode)
 
 function setSiteLang()
 {
-    global $config;
-
-    $userLocation = false;
-    $obj = AVideoPlugin::getDataObjectIfEnabled('User_Location');
-    $userLocation = !empty($obj) && !empty($obj->autoChangeLanguage);
-
-    if (!empty($_GET['lang'])) {
-        _session_start();
-        setLanguage($_GET['lang']);
-    } else if ($userLocation) {
-        User_Location::changeLang();
-    }
-    if (empty($_SESSION['language'])) {
-        setLanguage($config->getLanguage());
-    }
-    if (empty($_SESSION['language'])) {
+    global $config, $global;
+    if (empty($global['systemRootPath'])) {
         setLanguage('en_US');
+    } else {
+        if (empty($config)) {
+            require_once $global['systemRootPath'] . 'objects/configuration.php';
+            if (class_exists('Configuration')) {
+                $config = new Configuration();
+            }
+        }
+        require_once $global['systemRootPath'] . 'plugin/AVideoPlugin.php';
+        $userLocation = false;
+        $obj = AVideoPlugin::getDataObjectIfEnabled('User_Location');
+        $userLocation = !empty($obj) && !empty($obj->autoChangeLanguage);
+
+        if (!empty($_GET['lang'])) {
+            _session_start();
+            setLanguage($_GET['lang']);
+        } else if ($userLocation) {
+            User_Location::changeLang();
+        }
+        if (empty($_SESSION['language']) && !empty($config)) {
+            setLanguage($config->getLanguage());
+        }
+        if (empty($_SESSION['language'])) {
+            setLanguage('en_US');
+        }
     }
 }
 
@@ -184,7 +197,7 @@ function setLanguage($lang)
 
 function getLanguage()
 {
-    if(empty($_SESSION['language'])){
+    if (empty($_SESSION['language'])) {
         return 'en_US';
     }
     return fixLangString($_SESSION['language']);

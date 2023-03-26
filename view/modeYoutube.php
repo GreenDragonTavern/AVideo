@@ -79,30 +79,31 @@ if (!empty($evideo)) {
         $playListData = $plp->getPlayListData();
 
         $video = $plp->getCurrentVideo();
-
-        $_getVideos_id = intval($video['id']);
-        $playlist_index = $plp->getIndex();
-
-        if (empty($playListData)) {
-            videoNotFound('');
+        if(!empty($video)){
+            $_getVideos_id = intval($video['id']);
+            $playlist_index = $plp->getIndex();
+    
+            if (empty($playListData)) {
+                videoNotFound('');
+            }
+    
+            $videosPlayList = $plp->getVideos();
+            $autoPlayVideo = $plp->getNextVideo();
+            $playlist_id = $plp->getPlaylists_id();
+            //var_dump($video);exit;
         }
-
-        $videosPlayList = $plp->getVideos();
-        $autoPlayVideo = $plp->getNextVideo();
-        $playlist_id = $plp->getPlaylists_id();
-        //var_dump($video);exit;
     } else {
         $catLink = '';
-        if (!empty($_GET['catName'])) {
-            $catLink = "cat/{$_GET['catName']}/";
+        if (!empty($_REQUEST['catName'])) {
+            $catLink = "cat/{$_REQUEST['catName']}/";
         }
 
         TimeLogEnd($timeLogNameMY, __LINE__, $TimeLogLimitMY);
         // add this because if you change the video category the video was not loading anymore
-        $catName = @$_GET['catName'];
+        $catName = @$_REQUEST['catName'];
 
         if (empty($_GET['clean_title']) && (isset($advancedCustom->forceCategory) && $advancedCustom->forceCategory === false)) {
-            $_GET['catName'] = '';
+            $_REQUEST['catName'] = '';
         }
 
         if (empty($video) && !empty($_REQUEST['v'])) {
@@ -134,13 +135,13 @@ if (!empty($evideo)) {
             Video::unsetAddView($video['id']);
 
             // add this because if you change the video category the video was not loading anymore
-            $_GET['catName'] = $catName;
+            $_REQUEST['catName'] = $catName;
 
             $_GET['isMediaPlaySite'] = $video['id'];
             $obj = new Video("", "", $video['id']);
         }
 
-        $get = ['channelName' => @$_GET['channelName'], 'catName' => @$_GET['catName']];
+        $get = ['channelName' => @$_GET['channelName'], 'catName' => @$_REQUEST['catName']];
 
         $modeYouTubeTimeLog['Code part 1.1'] = microtime(true) - $modeYouTubeTime;
         $modeYouTubeTime = microtime(true);
@@ -180,7 +181,7 @@ if (!empty($evideo)) {
         $name = User::getNameIdentificationById($video['users_id']);
         $name = "<a href='" . User::getChannelLink($video['users_id']) . "' class='btn btn-xs btn-default'>{$name} " . User::getEmailVerifiedIcon($video['users_id']) . "</a>";
         $subscribe = Subscribe::getButton($video['users_id']);
-        $video['creator'] = Video::getCreatorHTML($video['users_id'], '<div class="clearfix"></div><small>' . humanTiming(strtotime($video['videoCreation'])) . '</small>');
+        $video['creator'] = Video::getCreatorHTML($video['users_id'], '<div class="clearfix"></div><small>' . humanTiming(strtotime(@$video['videoCreation'])) . '</small>');
 
         $obj = new Video("", "", $video['id']);
     }

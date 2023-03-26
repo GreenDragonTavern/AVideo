@@ -57,7 +57,9 @@ if (!empty($_POST['videoLink'])) {
             $obj->setClean_title($infoObj->title);
             $obj->setDuration($infoObj->duration);
             $obj->setDescription($infoObj->description);
-            file_put_contents($global['systemRootPath'] . "videos/{$filename}.jpg", base64_decode($infoObj->thumbs64));
+            $imgFile = $global['systemRootPath'] . "videos/{$filename}/{$filename}.jpg";
+            _error_log('videoAddNew save image: '.$imgFile);
+            _file_put_contents($imgFile, base64_decode($infoObj->thumbs64));
         }
         $_POST['videoLinkType'] = "embed";
     } elseif (empty($_POST['id'])) {
@@ -89,7 +91,7 @@ if (!empty($_POST['videoLink'])) {
         $obj->setType($_POST['videoLinkType']);
     }
     if (empty($_POST['id'])) {
-        $obj->setStatus('a');
+        $obj->setAutoStatus(Video::$statusActive);
     }
 } elseif (!empty($obj->getType()) && ($obj->getType() == 'video' || $obj->getType() == 'serie' || $obj->getType() == 'audio')) {
     $obj->setVideoLink("");
@@ -99,7 +101,7 @@ TimeLogEnd(__FILE__, __LINE__);
 if (!empty($_POST['isArticle'])) {
     $obj->setType("article");
     if (empty($_POST['id'])) {
-        $obj->setStatus('a');
+        $obj->setAutoStatus(Video::$statusActive);
     }
     $paths = Video::getNewVideoFilename();
     $filename = $paths['filename'];
