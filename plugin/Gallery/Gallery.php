@@ -411,7 +411,8 @@ class Gallery extends PluginAbstract
                     $countVideos += $section->totalRows;
                     $response->sections[] = $section;
                 } else
-                if ($value['name'] == 'SubscribedChannels' && User::isLogged()) {
+                if ($value['name'] == 'SubscribedChannels' && User::isLogged() && AVideoPlugin::isEnabledByName('VideoTags')) {
+                    require_once $global['systemRootPath'] . 'objects/subscribe.php';
                     $users_id = User::getId();
                     $channels = Subscribe::getSubscribedChannels($users_id, $obj->SubscribedChannelsRowCount, 1);
                     foreach ($channels as $value2) {

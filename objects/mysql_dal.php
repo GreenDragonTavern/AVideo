@@ -93,6 +93,7 @@ class sqlDAL
     {
         global $global, $disableMysqlNdMethods;
         if (empty($preparedStatement)) {
+            _error_log("writeSql empty(preparedStatement)");
             return false;
         }
         // make sure it does not store autid transactions
@@ -111,6 +112,7 @@ class sqlDAL
         if (preg_match('/^update plugins/i', $preparedStatement) || preg_match('/^insert into plugins/i', $preparedStatement) || preg_match('/^delete from plugins/i', $preparedStatement)) {
             _error_log("Plugin updated {$preparedStatement}:" . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
             if (!empty($global['lockPlugins'])) {
+                _error_log("writeSql lockPlugins");
                 return false;
             }
         }
@@ -138,10 +140,49 @@ class sqlDAL
         try {
             $stmt->execute();
         } catch (Exception $exc) {
-            log_error($exc->getTraceAsString());
-            log_error('Error in writeSql stmt->execute: ' . $global['mysqli']->errno . " " . $global['mysqli']->error . ' ' . $preparedStatement);
             if (preg_match('/playlists_has_videos/', $preparedStatement)) {
                 log_error('Error in writeSql values: ' . json_encode($values));
+            }else if (preg_match('/Illegal mix of collations.*and \(utf8mb4/i', $global['mysqli']->error)) {
+                try {
+                    // Set the MySQL connection character set to UTF-8
+                    $global['mysqli']->query("SET NAMES 'utf8mb4'");
+                    $global['mysqli']->query("SET CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                    $stmt = $global['mysqli']->prepare($preparedStatement);
+                    sqlDAL::eval_mysql_bind($stmt, $formats, $values);
+                    $stmt->execute();
+                } catch (Exception $exc) {
+                    log_error($exc->getTraceAsString());
+                }
+            }else if(preg_match('/Conversion from collation/i', $global['mysqli']->error)){
+                $values2 = $values;
+                foreach ($values2 as $key => $value) {
+                    if(!is_numeric($value) && strlen($value)>20){
+                        $values2[$key] = "CONVERT('{$value}' USING latin1)";
+                    }
+                }
+                sqlDAL::eval_mysql_bind($stmt, $formats, $values2);
+                try {
+                    log_error('try again 1');
+                    $stmt->execute();
+                    log_error('try again 1 SUCCESS');
+                } catch (Exception $exc) {
+                    foreach ($values as $key => $value) {
+                        if(strlen($value)){
+                            $values[$key] = preg_replace("/[^A-Za-z0-9 ._:-]+/", ' ', $value);
+                        }
+                    }
+                    sqlDAL::eval_mysql_bind($stmt, $formats, $values);
+                    try {
+
+                        log_error('try again 2');
+                        $stmt->execute();
+                        log_error('try again 2 SUCCESS');
+                    } catch (Exception $exc) {
+    
+                        log_error($exc->getTraceAsString());
+                        log_error('Error in writeSql stmt->execute: ' . $global['mysqli']->errno . " " . $global['mysqli']->error . ' ' . $preparedStatement);
+                    }
+                }
             }
         }
 
@@ -157,6 +198,10 @@ class sqlDAL
              *
              */
 
+             _error_log("writeSql [{$stmt->errno}] {$stmt->error} ".' '.json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
+             if(preg_match('/Data truncated for column/i', $stmt->error)){
+                _error_log("writeSql values = ".' '.json_encode($values));
+             }
             $stmt->close();
             return false;
         }

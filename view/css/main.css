@@ -51,8 +51,14 @@ time.duration {
 	position: relative;
 }
 
-.thumbsImageContainer .thumbsImage {
+.thumbsImageContainer .thumbsImage, #channelLive .thumbsImage {
 	border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 4px solid transparent;
 }
 
 .thumbsImageContainer .progress {
@@ -1851,3 +1857,30 @@ button.btn-sm.hamburger svg {
 .labelUpperCase {
 	text-transform: uppercase;
 }
+
+.live-icon::before{
+	content: "\1f534"; /* insert the high voltage sign */
+	animation: glow 1s ease-in-out infinite alternate, flash 1s infinite; /* animate the glow and flash */
+  
+}
+
+  @keyframes glow {
+	from {
+	  text-shadow: 0 0 10px rgba(255, 0, 0, 0.096);
+	}
+	to {
+	  text-shadow: 0 0 20px #f00;
+	}
+  }
+  
+  @keyframes flash {
+	0% {
+	  opacity: 1;
+	}
+	50% {
+	  opacity: 0;
+	}
+	100% {
+	  opacity: 1;
+	}
+  }

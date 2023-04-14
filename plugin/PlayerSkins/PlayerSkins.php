@@ -130,7 +130,7 @@ class PlayerSkins extends PluginAbstract {
                 $htmlMediaTag = '<audio '.self::getPlaysinline().'
                        preload="auto"
                        poster="' . $images->poster . '" controls class="embed-responsive-item video-js vjs-default-skin vjs-16-9 vjs-big-play-centered" id="mainVideo">';
-                if ($video['type'] == "audio") {
+                if ($video['type'] == "audio" || Video::forceAudio()) {
                     $htmlMediaTag .= "<!-- Audio {$video['title']} {$video['filename']} -->" . getSources($video['filename']);
                 } else { // audio link
                     if (file_exists($global['systemRootPath'] . "videos/" . $video['filename'] . ".ogg")) {
@@ -358,6 +358,13 @@ class PlayerSkins extends PluginAbstract {
             $videos_id = getVideos_id();
             $video = Video::getVideoLight($videos_id);
             $spectrumSource = Video::getSourceFile($video['filename'], "_spectrum.jpg");
+            if(empty($spectrumSource["path"])){
+                if(AVideoPlugin::isEnabledByName('MP4ThumbsAndGif') && method_exists('MP4ThumbsAndGif', 'getSpectrum')){
+                    if(MP4ThumbsAndGif::getSpectrum($videos_id)){
+                        $spectrumSource = Video::getSourceFile($video['filename'], "_spectrum.jpg");
+                    }
+                }
+            }
             if (!empty($spectrumSource["path"])) {
                 $onPlayerReady = "startAudioSpectrumProgress('{$spectrumSource["url"]}');";
                 self::prepareStartPlayerJS($onPlayerReady);
@@ -634,6 +641,23 @@ class PlayerSkins extends PluginAbstract {
         player.on('play', function () {
             addView({$videos_id}, this.currentTime());
             _addViewBeaconAdded = false;
+            sendAVideoMobileMessage('play', this.currentTime());
+        });
+        player.on('ended', function () {
+            var time = Math.round(this.currentTime());
+            addView({$videos_id}, time);
+            sendAVideoMobileMessage('ended', time);
+        });
+        player.on('pause', function () {
+            var time = Math.round(this.currentTime());
+            addView({$videos_id}, time);
+            sendAVideoMobileMessage('pause', time);
+        });
+        player.on('volumechange', function () {
+            sendAVideoMobileMessage('volumechange', player.volume());
+        });
+        player.on('ratechange', function () {
+            sendAVideoMobileMessage('ratechange', player.playbackRate);
         });
         player.on('timeupdate', function () {
             var time = Math.round(this.currentTime());
@@ -651,10 +675,7 @@ class PlayerSkins extends PluginAbstract {
                 addViewFromCookie();
                 addViewSetCookie(PHPSESSID, {$videos_id}, time, seconds_watching_video);
             }
-        });
-        player.on('ended', function () {
-            var time = Math.round(this.currentTime());
-            addView({$videos_id}, time);
+            sendAVideoMobileMessage('timeupdate', time);
         });";
 
         if (!empty($nextURL)) {

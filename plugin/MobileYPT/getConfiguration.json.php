@@ -7,19 +7,23 @@ allowOrigin();
 $objMM = AVideoPlugin::getObjectData("MobileYPT");
 
 $customizeUser = AVideoPlugin::getDataObject('CustomizeUser');
-if(AVideoPlugin::isEnabled('YouPHPFlix2')){
+if(AVideoPlugin::isEnabledByName('YouPHPFlix2')){
     $firstPage = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIPlugin=YouPHPFlix2&APIName=firstPage";
 }else{
     $firstPage = "{$global['webSiteRootURL']}plugin/API/get.json.php?APIPlugin=Gallery&APIName=firstPage";
 }
-
 if(User::isLogged()){
+    $firstPage = addQueryStringParameter($firstPage, 'rowCount', 50);
     $firstPage = addQueryStringParameter($firstPage, 'user', User::getUserName());
     $firstPage = addQueryStringParameter($firstPage, 'pass', User::getUserPass());
     $firstPage = addQueryStringParameter($firstPage, 'webSiteRootURL', $global['webSiteRootURL']);
 }
 $objMM->firstPageEndpoint = $firstPage;
-$objMM->firstPage = json_decode(url_get_contents($firstPage));
+
+//$content = url_get_contents($objMM->firstPageEndpoint, "", 0, true, true);
+$content = url_get_contents_with_cache($objMM->firstPageEndpoint, 600, "", 0, false, true);
+
+$objMM->firstPage = _json_decode($content);
 
 $objMM->doNotShowPhoneOnSignup = $customizeUser->doNotShowPhoneOnSignup;
 
@@ -34,6 +38,15 @@ if(!empty($chat2)){
     $objMM->chat2ShowOnUserVideos = false;
 }
 
+$notifications = AVideoPlugin::getDataObjectIfEnabled('Notifications');
+if(!empty($notifications)){
+    $objMM->oneSignalEnabled = !_empty($notifications->oneSignalEnabled);
+    $objMM->oneSignalAPPID = $notifications->oneSignalAPPID;
+}else{
+    $objMM->oneSignalEnabled = false;
+    $objMM->oneSignalAPPID = '';
+}
+
 $objMM->homePageURL = AVideoPlugin::getMobileHomePageURL();
 
 $objMM->logo = getURL($config->getLogo());
@@ -44,6 +57,14 @@ $objMM->encoder = $config->getEncoderURL(true);
 $objMM->EULA_original = $objMM->EULA->value;
 $objMM->EULA = nl2br($objMM->EULA->value);
 $objMM->YPTSocket = AVideoPlugin::getDataObjectIfEnabled('YPTSocket');
+$unset = array('debugSocket', 'debugAllUsersSocket', 
+'server_crt_file', 'server_key_file', 'allow_self_signed', 'showTotalOnlineUsersPerVideo', 
+'showTotalOnlineUsersPerLive', 'showTotalOnlineUsersPerLiveLink', 'enableCalls');
+
+foreach ($unset as $value) {
+    unset($objMM->YPTSocket->$value);
+}
+
 $objMM->language = $config->getLanguage();
 @include_once "{$global['systemRootPath']}locale/{$objMM->language}.php";
 $objMM->translations = $t;
@@ -91,4 +112,7 @@ if (AVideoPlugin::isEnabledByName("TopMenu")) {
         }
     }
 }
-echo json_encode($objMM);
+$str = _json_encode($objMM);
+_error_log('getConfiguration line strlen='.strlen($str));
+echo $str;
+exit;

@@ -4,8 +4,10 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 // require_once ($_POST['systemRootPath'] . "plugin/WWBNIndex/Objects/WWBNIndexModel.php");
 // $wwbnIndexModel = new WWBNIndexModel();
-
-$platform_unqid = base_convert(md5(encryptString($_POST['salt'] . 'AVideo')), 16, 36);
+if(!_mysql_is_open()){
+    return false;
+}
+$platform_unqid = base_convert(md5(encryptStringWWBN($_POST['salt'] . 'AVideo')), 16, 36);
 
 function getAvailablePluginsBasic()
 {
@@ -26,18 +28,18 @@ function getWWBNToken()
     $obj->plugin = "WWBN";
     $obj->webSiteRootURL = $_POST['webSiteRootURL'];
     $obj->time = time();
-    return encryptString($obj);
+    return encryptStringWWBN($obj);
 }
 
-function encryptString($string) 
+function encryptStringWWBN($string) 
 {
     if (is_object($string) || is_array($string)) {
         $string = json_encode($string);
     }
-    return encrypt_decrypt($string, 'encrypt');
+    return encrypt_decryptWWBN($string, 'encrypt');
 }
 
-function encrypt_decrypt($string, $action) 
+function encrypt_decryptWWBN($string, $action) 
 {
     $output = false;
     $encrypt_method = "AES-256-CBC";

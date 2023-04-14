@@ -177,7 +177,7 @@ class API extends PluginAbstract
     {
         global $global;
         $name = "get_api_plugin_parameters" . json_encode($parameters);
-        $obj = ObjectYPT::getCache($name, 3600);
+        $obj = ObjectYPT::getCacheGlobal($name, 3600);
         if (empty($obj)) {
             $obj = $this->startResponseObject($parameters);
             if (!empty($parameters['plugin_name'])) {
@@ -509,7 +509,7 @@ class API extends PluginAbstract
         // use 1 hour cache
         $cacheName = 'get_api_video' . md5(json_encode($cacheVars));
         if (empty($parameters['videos_id'])) {
-            $obj = ObjectYPT::getCache($cacheName, 3600);
+            $obj = ObjectYPT::getCacheGlobal($cacheName, 3600);
             if (!empty($obj)) {
                 $end = microtime(true) - $start;
                 return new ApiObject("Cached response in {$end} seconds", false, $obj);
@@ -1473,7 +1473,7 @@ class API extends PluginAbstract
         global $global;
 
         $name = "get_api_subscribers" . json_encode($parameters);
-        $subscribers = ObjectYPT::getCache($name, 3600);
+        $subscribers = ObjectYPT::getCacheGlobal($name, 3600);
         if (empty($subscribers)) {
             $obj = $this->startResponseObject($parameters);
             if (self::isAPISecretValid()) {
@@ -2140,6 +2140,33 @@ class API extends PluginAbstract
         exit;
     }
 
+    
+    /**
+     *
+     * @param string $parameters
+     * 'user' username of the user
+     * 'pass' password  of the user
+     * ['encodedPass' tell the script id the password submitted  is raw or encrypted]
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
+     * @return string
+     */
+    public function get_api_notifications($parameters)
+    {
+        global $global;
+        $plugin = AVideoPlugin::loadPluginIfEnabled('UserNotifications');
+        if ($plugin) {
+            $url = "{$global['webSiteRootURL']}plugin/UserNotifications/getNotifications.json.php";
+            $rows = json_decode(url_get_contents($url, "", 0, false, true));
+            $url = "{$global['webSiteRootURL']}plugin/Live/stats.json.php";
+            $live = json_decode(url_get_contents($url, "", 0, false, true));
+            $rows->live = $live;
+            return new ApiObject('', false, $rows);
+        } else {
+            return new ApiObject("UserNotifications Plugin disabled");
+        }
+        exit;
+    }
+
     public static function isAPISecretValid()
     {
         global $global;
@@ -2188,6 +2215,7 @@ class SectionFirstPage
     public $endpointResponse;
     public $totalRows;
     public $childs;
+    public $executionTime;
 
     // Add constructor, getter, and setter here
     public function __construct($type, $title, $endpoint, $rowCount, $childs = array())
@@ -2210,14 +2238,30 @@ class SectionFirstPage
 
             //$endpointURL = addQueryStringParameter($endpointURL, 'PHPSESSID', session_id());
         }
-        $response = json_decode(url_get_contents($endpointURL, '', 2, false, true));
-        /*
-          if(User::isLogged()){
-          session_id($response->session_id);
-          }
-         */
-        $this->endpointResponse = $response->response;
-        $this->totalRows = $this->endpointResponse->totalRows;
+        $start = microtime(true);
+        //$endPointResponse = url_get_contents($endpointURL, '', 5, false, true);
+        $endPointResponse = url_get_contents_with_cache($endpointURL, 300, '', 5, false, true);
+        $this->executionTime =  microtime(true)-$start;
+        //_error_log(gettype($endPointResponse).' '.json_encode($endPointResponse));
+        if(!empty($endPointResponse)){
+            if(is_string($endPointResponse)){
+                $response = json_decode($endPointResponse);
+            }else{
+                $response = $endPointResponse;
+            }
+            /*
+              if(User::isLogged()){
+              session_id($response->session_id);
+              }
+             */
+            if(!empty($response)){
+                $this->endpointResponse = $response->response;
+                $this->totalRows = $this->endpointResponse->totalRows;
+            }else{
+                $this->endpointResponse = new stdClass();
+                $this->totalRows = 0;
+            }
+        }
         $this->childs = $childs;
     }
 }

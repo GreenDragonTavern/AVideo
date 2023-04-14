@@ -469,7 +469,7 @@ if (typeof gtag !== \"function\") {
     public static function getUserPass() {
         if (self::isLogged()) {
             //return $_SESSION['user']['password'];
-            return $_SESSION['user']['passhash'];
+            return @$_SESSION['user']['passhash'];
         } else {
             return false;
         }
@@ -2394,7 +2394,10 @@ if (typeof gtag !== \"function\") {
             return true;
         }
         try {
-            $config = new Configuration();
+            require_once $global['systemRootPath'] . 'objects/configuration.php';
+            if (class_exists('Configuration')) {
+                $config = new Configuration();
+            }
             $code = urlencode(static::createVerificationCode($users_id));
             //Create a new PHPMailer instance
             if (!is_object($config)) {

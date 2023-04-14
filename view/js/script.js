@@ -3826,28 +3826,36 @@ function addScript(src) {
 }
 
 function avideoLogoff(redirect) {
-    sendAVideoMobileLiveStreamerMessage('logoff', '');
+    sendAVideoMobileMessage('logoff', '');
     if (redirect) {
         document.location = webSiteRootURL + 'logoff';
     }
 }
 
-async function sendAVideoMobileLiveStreamerMessage(type, value) {
+async function sendAVideoMobileMessage(type, value){
+    return sendAVideoMobileMessage(type, value);
+}
+
+async function sendAVideoMobileMessage(type, value) {
     if (typeof window.flutter_inappwebview !== 'undefined') {
+        //console.log('sendAVideoMobileMessage flutter_inappwebview', typeof window.flutter_inappwebview, window.flutter_inappwebview);
         if (typeof window.flutter_inappwebview.callHandler == 'function') {
-            for (i = 0; i < 10; i++) {
-                response = await window.flutter_inappwebview.callHandler('AVideoMobileLiveStreamer' + i, {type: type, value: value, instanceIndex: i});
+            response = await window.flutter_inappwebview.callHandler('AVideoMobileLiveStreamer3', {type: type, value: value, instanceIndex: 3});
+            console.log('sendAVideoMobileMessage test', response);
+            for (var i = 0; i < 10; i++) {
+                var name = 'AVideoMobileLiveStreamer' + i;
+                response = await window.flutter_inappwebview.callHandler(name, {type: type, value: value, instanceIndex: i});
                 if (response !== null) {
-                    console.log('sendAVideoMobileLiveStreamerMessage executed', i, response, type, value);
+                    console.log('sendAVideoMobileMessage executed', name, response, type, value);
                     break;
                 } else {
-                    console.log('sendAVideoMobileLiveStreamerMessage not found', i, type, value);
+                    console.log('sendAVideoMobileMessage not found', name, type, value);
                 }
             }
         } else {
-            console.log('sendAVideoMobileLiveStreamerMessage will try again', type, value);
+            console.log('sendAVideoMobileMessage will try again', type, value);
             setTimeout(function () {
-                sendAVideoMobileLiveStreamerMessage(type, value);
+                sendAVideoMobileMessage(type, value);
             }, 1000);
         }
     } else {
@@ -3856,7 +3864,8 @@ async function sendAVideoMobileLiveStreamerMessage(type, value) {
     }
 }
 window.addEventListener("flutterInAppWebViewPlatformReady", function (event) {
-    sendAVideoMobileLiveStreamerMessage('APPIsReady', 1);
+    console.log('flutterInAppWebViewPlatformReady Platform ready, sending APPIsReady message');
+    sendAVideoMobileMessage('APPIsReady', 1);
 });
 
 function getUser() {

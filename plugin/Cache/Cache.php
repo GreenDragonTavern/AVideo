@@ -100,7 +100,7 @@ class Cache extends PluginAbstract
         if($this->isFirstPage()){
             $dir .= (isMobile()?'mobile':'desktop').DIRECTORY_SEPARATOR;
         }
-        return $dir . User::getId() . "_{$compl}" . md5(@$_SESSION['channelName'] . $_SERVER['REQUEST_URI'] . $_SERVER['HTTP_HOST']) . "_" . $session_id . "_" . (!empty($_SERVER['HTTPS']) ? 'a' : '') . (@$_SESSION['language']) . '.cache';
+        return $dir . User::getId() . "_{$compl}" . md5(@$_SESSION['channelName'] . $_SERVER['REQUEST_URI'] . @$_SERVER['HTTP_HOST']) . "_" . $session_id . "_" . (!empty($_SERVER['HTTPS']) ? 'a' : '') . (@$_SESSION['language']) . '.cache';
     }
 
     private function isFirstPage()
@@ -335,10 +335,10 @@ class Cache extends PluginAbstract
         return $_getCacheMetaData;
     }
 
-    public static function _getCache($name)
+    public static function _getCache($name, $ignoreMetadata=false)
     {
         $metadata = self::getCacheMetaData();
-        return CachesInDB::_getCache($name, $metadata['domain'], $metadata['ishttps'], $metadata['user_location'], $metadata['loggedType']);
+        return CachesInDB::_getCache($name, $metadata['domain'], $metadata['ishttps'], $metadata['user_location'], $metadata['loggedType'], $ignoreMetadata);
     }
 
     public static function _setCache($name, $value)
@@ -347,7 +347,7 @@ class Cache extends PluginAbstract
         return CachesInDB::_setCache($name, $value, $metadata['domain'], $metadata['ishttps'], $metadata['user_location'], $metadata['loggedType']);
     }
 
-    public static function getCache($name, $lifetime = 60)
+    public static function getCache($name, $lifetime = 60, $ignoreMetadata=false)
     {
         global $_getCacheDB, $global;
         if (!empty($global['ignoreAllCache'])) {
@@ -360,12 +360,14 @@ class Cache extends PluginAbstract
         if (empty($_getCacheDB[$index])) {
             $_getCacheDB[$index] = null;
             $metadata = self::getCacheMetaData();
-            $row = CachesInDB::_getCache($name, $metadata['domain'], $metadata['ishttps'], $metadata['user_location'], $metadata['loggedType']);
+            $row = CachesInDB::_getCache($name, $metadata['domain'], $metadata['ishttps'], $metadata['user_location'], $metadata['loggedType'], $ignoreMetadata);
             if (!empty($row)) {
                 $time = getTimeInTimezone(strtotime($row['modified']), $row['timezone']);
-                if (!empty($lifetime) && ($time + $lifetime) < time()) {
+                if (!empty($lifetime) && ($time + $lifetime) < time() && !empty($row['id'])) {
                     $c = new CachesInDB($row['id']);
-                    $c->delete();
+                    if(!empty($c->getId())){
+                        $c->delete();
+                    }
                 } else {
                     $_getCacheDB[$index] = _json_decode($row['content']);
                 }

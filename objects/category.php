@@ -429,7 +429,7 @@ class Category {
         $cacheName = 'category/' . md5($sql);
 
         //_error_log('getAllCategories getCache');
-        $category = object_to_array(ObjectYPT::getCache($cacheName, 36000));
+        $category = object_to_array(ObjectYPT::getCacheGlobal($cacheName, 36000));
         if (empty($category)) {
             $res = sqlDAL::readSql($sql);
 
@@ -587,6 +587,10 @@ class Category {
                 $sql .= " AND (private=0 OR users_id = '{$users_id}') ";
             }
         }
+        
+        unset($_POST['sort']['v.created']);
+        unset($_POST['sort']['likes']);
+
         $sql .= BootGrid::getSqlFromPost(['name'], "", " ORDER BY `order`, name ASC ");
         $res = sqlDAL::readSql($sql, "ii", [$parentId, $parentId]);
         $fullResult = sqlDAL::fetchAllAssoc($res);
