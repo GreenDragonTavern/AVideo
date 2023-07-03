@@ -218,7 +218,7 @@ class CustomizeAdvanced extends PluginAbstract {
         $obj->doNotShowEncoderAutomaticWebm = false;
         $obj->doNotShowEncoderAutomaticAudio = false;
         $obj->saveOriginalVideoResolution = false;
-        self::addDataObjectHelper('saveOriginalVideoResolution', 'Do not save original video', 'This option will make your encoder at the end trancode the video into the original format resolution');
+        self::addDataObjectHelper('saveOriginalVideoResolution', 'Save the original video resolution', 'This option will make your encoder at the end trancode the video into the original format resolution');
         $obj->doNotShowExtractAudio = false;
         $obj->doNotShowCreateVideoSpectrum = false;
         $obj->doNotShowLeftMenuAudioAndVideoButtons = false;
@@ -883,6 +883,8 @@ class SocialMedias {
 }
 
 $global['social_medias'] = array(
+    'Whatsapp' => new SocialMedias('fab fa-whatsapp', ''),
+    'Telegram' => new SocialMedias('fab fa-telegram-plane', ''),
     'Facebook' => new SocialMedias('fab fa-facebook-square', ''),
     'Twitter' => new SocialMedias('fab fa-twitter', ''),
     'Tumblr' => new SocialMedias('fab fa-tumblr', ''),

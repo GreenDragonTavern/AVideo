@@ -90,6 +90,7 @@ class VideoStatistic extends ObjectYPT {
             $vs = new VideoStatistic($lastStatistic['id']);
         }
         $vs->setLastVideoTime($lastVideoTime);
+        $vs->setIp(getRealIpAddr());
 
         if (!empty($seconds_watching_video) && $seconds_watching_video > 0) {
             $totalVideoWatched = $vs->getSeconds_watching_video() + $seconds_watching_video;
@@ -361,7 +362,7 @@ class VideoStatistic extends ObjectYPT {
                     $channelsPerUser[$users_id][] = $row['videos_id'];
                 }
             }
-            $response = ObjectYPT::setCache($cacheName2, $channelsPerUser);
+            $response = ObjectYPT::setCacheGlobal($cacheName2, $channelsPerUser);
         }
 
         if (!empty($channelsPerUser)) {

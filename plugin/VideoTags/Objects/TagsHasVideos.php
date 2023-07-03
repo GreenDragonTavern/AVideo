@@ -187,5 +187,32 @@ class TagsHasVideos extends ObjectYPT {
         _error_log("videos_id for table " . static::getTableName() . " not defined for deletion");
         return false;
     }
+    
+    
+    public static function getAllWithVideo($limit=100)
+    {
+        global $global, $_getAllTagsWithVideo;
+        if(isset($_getAllTagsWithVideo)){
+            return $_getAllTagsWithVideo;
+        }
+        if (!static::isTableInstalled()) {
+            return false;
+        }
+        $sql = "SELECT DISTINCT tv.tags_id, t.*
+        FROM tags_has_videos tv
+        LEFT JOIN tags t ON tv.tags_id = t.id
+        GROUP BY tv.tags_id
+        ORDER BY COUNT(tv.videos_id) DESC, t.name ASC
+        LIMIT {$limit};
+        ";
+        //echo $sql;exit;
+        $res = sqlDAL::readSql($sql, "", array());
+        $fullData = sqlDAL::fetchAllAssoc($res);
+
+        sqlDAL::close($res);
+        $_getAllTagsWithVideo = $fullData;
+        return $fullData;
+        
+    }
 
 }

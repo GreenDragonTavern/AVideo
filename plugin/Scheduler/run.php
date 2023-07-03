@@ -51,3 +51,9 @@ function _log($msg){
     
     _error_log("Scheduler::run {$msg}");
 }
+
+include $global['systemRootPath'] . 'plugin/Scheduler/watchDog.php';
+
+Scheduler::sendEmails();
+
+AVideoPlugin::executeEveryMinute();

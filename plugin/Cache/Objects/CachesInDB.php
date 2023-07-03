@@ -17,7 +17,7 @@ class CachesInDB extends ObjectYPT
     protected $expires;
     protected $timezone;
     protected $name;
-
+    
     public static function getSearchFieldsNames()
     {
         return ['domain', 'ishttps', 'user_location', 'timezone', 'name'];
@@ -134,10 +134,13 @@ class CachesInDB extends ObjectYPT
         $sql = "SELECT * FROM " . static::getTableName() . " WHERE name = ? ";
         $formats = 's';
         $values = [$name];
+        $sql .= "  AND ishttps = ? AND domain = ? AND user_location = ? ";
+        $formats = 'ssss';
+        $values = [$name, $ishttps, $domain, $user_location];
         if(empty($ignoreMetadata)){
-            $sql .= "  AND ishttps = ? AND loggedType = ? AND domain = ? AND user_location = ? ";
-            $formats = 'sisss';
-            $values = [$name, $ishttps, $loggedType, $domain, $user_location];
+            $sql .= " AND loggedType = ? ";
+            $formats .= 'i';
+            $values[] = $loggedType;
         }
         $sql .= " ORDER BY id DESC LIMIT 1";
         //_error_log(json_encode(array($sql, $values )));
@@ -211,8 +214,29 @@ class CachesInDB extends ObjectYPT
             return false;
         }
         $name = self::hashName($name);
+        //$sql = "DELETE FROM " . static::getTableName() . " ";
+        //$sql .= " WHERE name LIKE '{$name}%'";
+        $sql = "DELETE FROM CachesInDB WHERE MATCH(name) AGAINST('{$name}*' IN BOOLEAN MODE);";
+        
+        $global['lastQuery'] = $sql;
+        //_error_log("Delete Query: ".$sql);
+        return sqlDAL::writeSql($sql);
+    }
+
+    
+    public static function _deleteCacheWith($name)
+    {
+        global $global;
+        if (empty($name)) {
+            return false;
+        }
+        if (!static::isTableInstalled()) {
+            return false;
+        }
+        $name = self::hashName($name);
+        $name = str_replace('hashName_', '', $name);
         $sql = "DELETE FROM " . static::getTableName() . " ";
-        $sql .= " WHERE name LIKE '{$name}%'";
+        $sql .= " WHERE name LIKE '%{$name}%'";
         $global['lastQuery'] = $sql;
         //_error_log("Delete Query: ".$sql);
         return sqlDAL::writeSql($sql);

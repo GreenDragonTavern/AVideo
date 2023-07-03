@@ -10,8 +10,8 @@ require_once $global['systemRootPath'] . 'objects/user.php';
 require_once $global['systemRootPath'] . 'objects/video.php';
 
 class Category {
-    protected $properties = [];
 
+    protected $properties = [];
     private $id;
     private $name;
     private $clean_name;
@@ -25,7 +25,6 @@ class Category {
     private $allow_download;
     private $order;
     private $suggested;
-
 
     public function getSuggested() {
         return empty($this->suggested) ? 0 : 1;
@@ -74,7 +73,6 @@ class Category {
     public function setClean_name($clean_name) {
         $clean_name = preg_replace('/\W+/', '-', strtolower(cleanString($clean_name)));
         $this->clean_name = _substr($clean_name, 0, 45);
-        ;
     }
 
     public function setNextVideoOrder($nextVideoOrder) {
@@ -183,6 +181,7 @@ class Category {
             return false;
         }
     }
+
     /**
      *
      * @param string $clean_title
@@ -381,6 +380,7 @@ class Category {
                 $sql .= " AND (private=0 OR users_id = '{$users_id}') ";
             }
         }
+        
         if ($onlyWithVideos) {
             $sql .= " AND ((SELECT count(*) FROM videos v where v.categories_id = c.id OR categories_id IN (SELECT id from categories where parentId = c.id AND id != c.id)) > 0  ";
             if (AVideoPlugin::isEnabledByName("Live")) {
@@ -404,7 +404,7 @@ class Category {
             //_error_log('getAllCategories getUserGroups');
             $users_groups = UserGroups::getUserGroups($sameUserGroupAsMe);
 
-            $users_groups_id = [0];
+            $users_groups_id = array(0);
             foreach ($users_groups as $value) {
                 $users_groups_id[] = $value['id'];
             }
@@ -415,6 +415,7 @@ class Category {
                     . "(SELECT count(*) FROM categories_has_users_groups chug2 WHERE c.id = chug2.categories_id AND users_groups_id IN (" . implode(',', $users_groups_id) . ")) >= 1 "
                     . ")";
         }
+
         $sortWhitelist = ['id', 'name', 'clean_name', 'description', 'iconClass', 'nextVideoOrder', 'parentId', 'type', 'users_id', 'private', 'allow_download', 'order', 'suggested'];
 
         if (!empty($_POST['sort']) && is_array($_POST['sort'])) {
@@ -424,16 +425,17 @@ class Category {
                 }
             }
         }
+        
         $sql .= BootGrid::getSqlFromPost(['name'], "", " ORDER BY `order`, name ASC ");
         //echo $sql;exit;
         $cacheName = 'category/' . md5($sql);
 
         //_error_log('getAllCategories getCache');
-        $category = object_to_array(ObjectYPT::getCacheGlobal($cacheName, 36000));
+        $cacheObj = ObjectYPT::getCacheGlobal($cacheName, 36000);
+        $category = object_to_array($cacheObj);
+        //var_dump(!empty($cacheObj), !empty($category), debug_backtrace());
         if (empty($category)) {
             $res = sqlDAL::readSql($sql);
-
-            //_error_log('getAllCategories respond');
             $fullResult = sqlDAL::fetchAllAssoc($res);
             sqlDAL::close($res);
             $category = [];
@@ -443,7 +445,7 @@ class Category {
                     //_error_log("getAllCategories id={$row['id']} line=".__LINE__);
                     $totals = self::getTotalFromCategory($row['id']);
 
-                    if($onlyWithVideos && empty($totals['total'])){
+                    if ($onlyWithVideos && empty($totals['total'])) {
                         continue;
                     }
 
@@ -451,6 +453,7 @@ class Category {
                     $fullTotals = self::getTotalFromCategory($row['id'], false, true, true);
 
                     $row['name'] = $row['name'];
+                    $row['clean_name'] = $row['clean_name'];
                     $row['total'] = $totals['total'];
                     $row['fullTotal'] = $fullTotals['total'];
                     $row['fullTotal_videos'] = $fullTotals['videos'];
@@ -467,13 +470,24 @@ class Category {
                     //_error_log("getAllCategories id={$row['id']} line=".__LINE__);
                     $row['hierarchyAndName'] = $row['hierarchy'] . __($row['name']);
                     //_error_log("getAllCategories id={$row['id']} line=".__LINE__);
-                    $row['description_html'] = textToLink(htmlentities($row['description']));
+                    $row['description_html'] = textToLink(htmlentities("{$row['description']}"));
                     $category[] = $row;
                 }
 
                 //_error_log('getAllCategories setCache');
                 //$category = $res->fetch_all(MYSQLI_ASSOC);
-                ObjectYPT::setCache($cacheName, $category);
+                $cache = ObjectYPT::setCacheGlobal($cacheName, $category);
+                //$cacheObj = ObjectYPT::getCacheGlobal($cacheName, 36000);
+                //$category = object_to_array($cacheObj);
+                /*
+                $cachefile = ObjectYPT::getCacheFileName($cacheName, false, true, true);
+                if(empty($cache)){
+                    _error_log('getAllCategories empty($cache) '.json_encode(empty($category)));
+                }
+                _error_log('getAllCategories respond '.json_encode(array($cachefile, $cacheName, $cache)));
+                */
+                //var_dump(array($cache, $cacheObj, $category));exit;
+            
             } else {
                 $category = false;
                 //die($sql . '\nError : (' . $global['mysqli']->errno . ') ' . $global['mysqli']->error);
@@ -493,7 +507,7 @@ class Category {
         sqlDAL::close($res);
         if ($result) {
             $hierarchyArray[] = $result;
-            if($result['parentId'] != $categories_id){
+            if ($result['parentId'] != $categories_id) {
                 return self::getHierarchyArray($result['parentId'], $hierarchyArray);
             }
         }
@@ -521,7 +535,7 @@ class Category {
         if (empty($categories_id)) {
             return false;
         }
-        if(isCommandLineInterface()){
+        if (isCommandLineInterface()) {
             return true;
         }
         if (empty($users_id)) {
@@ -587,11 +601,12 @@ class Category {
                 $sql .= " AND (private=0 OR users_id = '{$users_id}') ";
             }
         }
-        
+
         unset($_POST['sort']['v.created']);
         unset($_POST['sort']['likes']);
 
         $sql .= BootGrid::getSqlFromPost(['name'], "", " ORDER BY `order`, name ASC ");
+        //var_dump($sql, [$parentId, $parentId]);exit;
         $res = sqlDAL::readSql($sql, "ii", [$parentId, $parentId]);
         $fullResult = sqlDAL::fetchAllAssoc($res);
         sqlDAL::close($res);
@@ -602,7 +617,7 @@ class Category {
                 $row['name'] = xss_esc_back($row['name']);
                 $row['total'] = $totals['total'];
                 $row['total_array'] = $totals;
-                
+
                 $category[] = $row;
             }
         } else {
@@ -905,7 +920,7 @@ class Category {
         if (filesize($background['path']) <= 980 || filesize($background['path']) == 4480) { // transparent image
             return false;
         }
-        return !is_image_fully_transparent($photo['path']) &&  !is_image_fully_transparent($background['path']) ;
+        return !is_image_fully_transparent($photo['path']) && !is_image_fully_transparent($background['path']);
     }
 
     public static function getOGImagePaths($categories_id) {
@@ -995,4 +1010,5 @@ class Category {
         }
         return $return;
     }
+
 }

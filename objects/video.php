@@ -115,10 +115,28 @@ if (!class_exists('Video')) {
         public static $rratingOptionsText = ['g' => 'General Audience', 'pg' => 'Parental Guidance Suggested', 'pg-13' => 'Parental Strongly Cautioned', 'r' => 'Restricted', 'nc-17' => 'No One 17 and Under Admitted', 'ma' => 'Mature Audience'];
         //ver 3.4
         protected $youtubeId;
-        public static $typeOptions = ['audio', 'video', 'embed', 'linkVideo', 'linkAudio', 'torrent', 'pdf', 'image', 'gallery', 'article', 'serie', 'image', 'zip', 'notfound', 'blockedUser'];
         public static $searchFieldsNames = ['v.title', 'v.description', 'c.name', 'c.description', 'v.id', 'v.filename'];
         public static $searchFieldsNamesLabels = ['Video Title', 'Video Description', 'Channel Name', 'Channel Description', 'Video ID', 'Video Filename'];
         public static $iframeAllowAttributes = 'allow="fullscreen;autoplay;camera *;microphone *;" allowfullscreen="allowfullscreen" mozallowfullscreen="mozallowfullscreen" msallowfullscreen="msallowfullscreen" oallowfullscreen="oallowfullscreen" webkitallowfullscreen="webkitallowfullscreen"';
+
+        public static $videoTypeAudio = 'audio';
+        public static $videoTypeVideo = 'video';
+        public static $videoTypeShort = 'short';
+        public static $videoTypeEmbed = 'embed';
+        public static $videoTypeLinkVideo = 'linkVideo';
+        public static $videoTypeLinkAudio = 'linkAudio';
+        public static $videoTypeTorrent = 'torrent';
+        public static $videoTypePdf = 'pdf';
+        public static $videoTypeImage = 'image';
+        public static $videoTypeGallery = 'gallery';
+        public static $videoTypeArticle = 'article';
+        public static $videoTypeSerie = 'serie';
+        public static $videoTypeZip = 'zip';
+        public static $videoTypeNotfound = 'notfound';
+        public static $videoTypeBlockedUser = 'blockedUser';
+        
+        public static $typeOptions = ['audio', 'video', 'short', 'embed', 'linkVideo', 'linkAudio', 'torrent', 'pdf', 'image', 'gallery', 'article', 'serie', 'image', 'zip', 'notfound', 'blockedUser'];
+        
 
         public function __construct($title = "", $filename = "", $id = 0, $refreshCache = false) {
             global $global;
@@ -645,9 +663,9 @@ if (!class_exists('Video')) {
 
         public function setDuration($duration) {
             if (!self::isValidDuration($this->duration) || self::isValidDuration($duration)) {
-                _error_log("setDuration before {$duration}");
+                //_error_log("setDuration before {$duration}");
                 AVideoPlugin::onVideoSetDuration($this->id, $this->duration, $duration);
-                _error_log("setDuration after {$duration}");
+                //_error_log("setDuration after {$duration}");
                 $this->duration = $duration;
             } else {
                 _error_log("setDuration error is not a valid {$duration}, old duration = {$this->duration}");
@@ -727,10 +745,10 @@ if (!class_exists('Video')) {
 
         public function isScheduledForRelease() {
             $datetime = $this->getPublish_datetime();
-            if(empty($datetime)){
+            if (empty($datetime)) {
                 return false;
             }
-            return strtotime($datetime)>time();
+            return strtotime($datetime) > time();
         }
 
         public function setAutoStatus($default = 'a') {
@@ -740,10 +758,10 @@ if (!class_exists('Video')) {
             }
             if (!empty($_POST['fail'])) {
                 return $this->setStatus(Video::$statusEncodingError);
-            } else {      
-                if($this->isScheduledForRelease()){
+            } else {
+                if ($this->isScheduledForRelease()) {
                     return $this->setStatus(Video::$statusScheduledReleaseDate);
-                }else 
+                } else
                 if (!empty($_REQUEST['overrideStatus'])) {
                     return $this->setStatus($_REQUEST['overrideStatus']);
                 } else if (!empty($_REQUEST['releaseDate']) && $_REQUEST['releaseDate'] !== 'now') {
@@ -951,6 +969,8 @@ if (!class_exists('Video')) {
                 }
             } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video') {
                 $sql .= " AND (v.type = 'audio' OR v.type = 'video') ";
+            } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video_and_serie') {
+                $sql .= " AND (v.type = 'audio' OR v.type = 'video' OR v.type = 'serie') ";
             } else if (!empty($_REQUEST['videoType']) && in_array($_REQUEST['videoType'], self::$typeOptions)) {
                 $sql .= " AND v.type = '{$_REQUEST['videoType']}' ";
             }
@@ -969,7 +989,7 @@ if (!class_exists('Video')) {
             if (!empty($_REQUEST['catName'])) {
                 $catName = ($_REQUEST['catName']);
                 $sql .= " AND (c.clean_name = '{$catName}' ";
-                if(empty($_REQUEST['doNotShowCatChilds'])){
+                if (empty($_REQUEST['doNotShowCatChilds'])) {
                     $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
                 }
                 $sql .= " )";
@@ -1009,6 +1029,21 @@ if (!class_exists('Video')) {
                     $sql .= " AND v.id NOT IN ( '" . implode("', '", $arrayNotIN) . "') ";
                 }
             }
+            if (!empty($_GET['created'])) {
+                $_GET['created'] = preg_replace('/[^0-9: -]/', '', $_GET['created']);
+                if (is_numeric($_GET['created']) && $_GET['created'] > 0) {
+                    $_GET['created'] = intval($_GET['created']);
+                    $sql .= " AND v.created >= DATE_SUB(CURDATE(), INTERVAL {$_GET['created']} DAY)";
+                } else {
+                    $sql .= " AND v.created >= '{$_GET['created']}'";
+                }
+            }
+
+            if (!empty($_REQUEST['minViews'])) {
+                $minViews = intval($_REQUEST['minViews']);
+                $sql .= " AND v.views_count >= '{$minViews}'";
+            }
+
             // replace random based on this
             $firstClauseLimit = '';
             if (empty($id)) {
@@ -1016,7 +1051,8 @@ if (!class_exists('Video')) {
                     $sql .= " AND v.isSuggested = 1 AND v.status = '" . self::$statusActive . "' ";
                 }
                 if (empty($random) && !empty($_GET['videoName'])) {
-                    $sql .= " AND v.clean_title = '{$_GET['videoName']}' ";
+                    $videoName = addcslashes($_GET['videoName'], "'");
+                    $sql .= " AND v.clean_title = '{$videoName}' ";
                 } elseif (!empty($random)) {
                     $sql .= " AND v.id != {$random} ";
                     //getTotalVideos($status = "viewable", $showOnlyLoggedUserVideos = false, $ignoreGroup = false, $showUnlisted = false, $activeUsersOnly = true, $suggestedOnly = false, $type = '') {
@@ -1194,10 +1230,10 @@ if (!class_exists('Video')) {
             if ($res !== false) {
                 $video = sqlDAL::fetchAssoc($res);
                 sqlDAL::close($res);
-                if(!empty($video)){
-                    if(self::forceAudio()){
+                if (!empty($video)) {
+                    if (self::forceAudio()) {
                         $video['type'] = 'audio';
-                    }else if(self::forceArticle()){
+                    } else if (self::forceArticle()) {
                         $video['type'] = 'article';
                     }
                 }
@@ -1226,26 +1262,30 @@ if (!class_exists('Video')) {
             global $global;
             $video = self::getVideoLight($videos_id);
             if (empty($video)) {
-                return false;
+                return array();
             }
             /**
              *
              * @var array $global
              * @var object $global['mysqli']
              */
-            $sql = "SELECT * FROM videos v WHERE v.id != {$videos_id} AND v.status='a' AND (categories_id = {$video['categories_id']} ";
+            $sql = "SELECT * FROM videos v WHERE v.id != {$videos_id} AND v.status='a' AND categories_id = {$video['categories_id']} ";
+
+            $sql .= " UNION ";
+
+            $sql .= "SELECT * FROM videos v WHERE v.id != {$videos_id} AND v.status='a' ";
+
             if (AVideoPlugin::isEnabledByName("VideoTags")) {
-                $sql .= " OR (";
+                $sql .= " AND (";
                 $sql .= "v.id IN (select videos_id FROM tags_has_videos WHERE tags_id IN "
                         . " (SELECT tags_id FROM tags_has_videos WHERE videos_id = {$videos_id}))";
                 $sql .= ")";
             }
 
-            $sql .= ") ";
-
             $sql .= AVideoPlugin::getVideoWhereClause();
 
-            $sql .= "ORDER BY RAND() LIMIT {$limit} ";
+            $sql .= "ORDER BY RAND() LIMIT {$limit}";
+
             $res = sqlDAL::readSql($sql);
             $fullData = sqlDAL::fetchAllAssoc($res);
 
@@ -1306,7 +1346,7 @@ if (!class_exists('Video')) {
          * @param string $videosArrayId an array with videos to return (for filter only)
          * @return array
          */
-        public static function getAllVideos($status = "viewable", $showOnlyLoggedUserVideos = false, $ignoreGroup = false, $videosArrayId = [], $getStatistcs = false, $showUnlisted = false, $activeUsersOnly = true, $suggestedOnly = false, $is_serie = null, $type = '') {
+        public static function getAllVideos($status = "viewable", $showOnlyLoggedUserVideos = false, $ignoreGroup = false, $videosArrayId = [], $getStatistcs = false, $showUnlisted = false, $activeUsersOnly = true, $suggestedOnly = false, $is_serie = null, $type = '', $max_duration_in_seconds=0) {
             global $global, $config, $advancedCustom, $advancedCustomUser;
             if ($config->currentVersionLowerThen('11.7')) {
                 return [];
@@ -1356,7 +1396,7 @@ if (!class_exists('Video')) {
                 $sql .= " AND (v.users_id = '{$uid}' OR v.users_id_company ='{$uid}')";
             } elseif (!empty($_GET['channelName'])) {
                 $user = User::getChannelOwner($_GET['channelName']);
-                if(!empty($user)){
+                if (!empty($user)) {
                     $uid = intval($user['id']);
                     $sql .= " AND (v.users_id = '{$uid}' OR v.users_id_company = '{$uid}')";
                 }
@@ -1416,6 +1456,8 @@ if (!class_exists('Video')) {
                 $sql .= " AND v.type = '{$type}' ";
             } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video') {
                 $sql .= " AND (v.type = 'audio' OR v.type = 'video') ";
+            } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video_and_serie') {
+                $sql .= " AND (v.type = 'audio' OR v.type = 'video' OR v.type = 'serie') ";
             } else if (!empty($_REQUEST['videoType']) && in_array($_REQUEST['videoType'], self::$typeOptions)) {
                 $sql .= " AND v.type = '{$_REQUEST['videoType']}' ";
             }
@@ -1439,7 +1481,7 @@ if (!class_exists('Video')) {
             if (!empty($_REQUEST['catName'])) {
                 $catName = ($_REQUEST['catName']);
                 $sql .= " AND (c.clean_name = '{$catName}' ";
-                if(empty($_REQUEST['doNotShowCatChilds'])){
+                if (empty($_REQUEST['doNotShowCatChilds'])) {
                     $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
                 }
                 $sql .= " )";
@@ -1450,8 +1492,23 @@ if (!class_exists('Video')) {
             }
 
             if (!empty($_GET['modified'])) {
-                $_GET['modified'] = str_replace("'", "", $_GET['modified']);
+                $_GET['modified'] = preg_replace('/[^0-9: -]/', '', $_GET['modified']);
                 $sql .= " AND v.modified >= '{$_GET['modified']}'";
+            }
+
+            if (!empty($_GET['created'])) {
+                $_GET['created'] = preg_replace('/[^0-9: -]/', '', $_GET['created']);
+                if (is_numeric($_GET['created']) && $_GET['created'] > 0) {
+                    $_GET['created'] = intval($_GET['created']);
+                    $sql .= " AND v.created >= DATE_SUB(CURDATE(), INTERVAL {$_GET['created']} DAY)";
+                } else {
+                    $sql .= " AND v.created >= '{$_GET['created']}'";
+                }
+            }
+
+            if (!empty($_REQUEST['minViews'])) {
+                $minViews = intval($_REQUEST['minViews']);
+                $sql .= " AND v.views_count >= '{$minViews}'";
             }
 
             if (!empty($_POST['searchPhrase'])) {
@@ -1470,6 +1527,11 @@ if (!class_exists('Video')) {
                     $searchFieldsNames = ['v.title'];
                     $sql .= self::getFullTextSearch($searchFieldsNames, $_POST['searchPhrase']) . ')';
                 }
+            }
+
+            if(!empty($max_duration_in_seconds)){
+                $max_duration_in_seconds = intval($max_duration_in_seconds);
+                $sql .= " AND duration_in_seconds <= {$max_duration_in_seconds} ";
             }
 
             $sql .= AVideoPlugin::getVideoWhereClause();
@@ -1531,12 +1593,13 @@ if (!class_exists('Video')) {
                 }
             }
 
-            //echo $sql;exit;
+            //echo $sql;var_dump($_REQUEST['doNotShowCatChilds']);exit;
             //_error_log("getAllVideos($status, $showOnlyLoggedUserVideos , $ignoreGroup , ". json_encode($videosArrayId).")" . $sql);
 
             $timeLogName = TimeLogStart("video::getAllVideos");
             $res = sqlDAL::readSql($sql);
             $fullData = sqlDAL::fetchAllAssoc($res);
+            //var_dump($sql, $fullData);exit;
             TimeLogEnd($timeLogName, __LINE__, 0.2);
 
             // if there is a search, and there is no data and is inside a channel try again without a channel
@@ -1592,6 +1655,16 @@ if (!class_exists('Video')) {
                     self::startTransaction();
                     $row = self::getInfo($row, $getStatistcs);
                     TimeLogEnd($tlogName, __LINE__, $tolerance / 2);
+
+                    $row['externalOptions'] = _json_decode($row['externalOptions']);
+                    if (empty($row['externalOptions']->privacyInfo)) {
+                        $row['externalOptions']->privacyInfo = self::updatePrivacyInfo($row['id']);
+                    }
+                    // this if will be removed soon
+                    if (!empty($global['flixhouse'])) {
+                        $row['externalOptions'] = _json_encode($row['externalOptions']);
+                    }
+
                     $videos[] = $row;
                 }
                 TimeLogEnd("video::getAllVideos foreach", __LINE__, $tolerance);
@@ -1606,9 +1679,6 @@ if (!class_exists('Video')) {
                 }
                 TimeLogEnd("video::getAllVideos foreach", __LINE__, $tolerance);
                 //$videos = $res->fetch_all(MYSQLI_ASSOC);
-            } else {
-                $videos = false;
-                die($sql . '\nError : (' . $global['mysqli']->errno . ') ' . $global['mysqli']->error);
             }
             return $videos;
         }
@@ -1617,11 +1687,12 @@ if (!class_exists('Video')) {
             if (empty($row)) {
                 return array();
             }
+            $rowOriginal = $row;
             $TimeLogLimit = 0.2;
             $timeLogName = TimeLogStart("video::getInfo getStatistcs");
             $name = "_getVideoInfo_{$row['id']}";
             $OneHour = 3600;
-            $cache = ObjectYPT::getCache($name, $OneHour);
+            $cache = ObjectYPT::getCacheGlobal($name, $OneHour);
             if (!empty($cache)) {
                 $externalOptions = $cache->externalOptions;
                 $obj = object_to_array($cache);
@@ -1643,10 +1714,19 @@ if (!class_exists('Video')) {
                     $obj['userExternalOptions'] = User::decodeExternalOption($obj['userExternalOptions']);
                 }
                 $obj = cleanUpRowFromDatabase($obj);
-                
-                if(self::forceAudio()){
+
+                if (!self::canEdit($obj['id'])) {
+                    if (!empty($rowOriginal['video_password'])) {
+                        $obj['video_password'] = '1';
+                    } else {
+                        $obj['video_password'] = '0';
+                    }
+                } else {
+                    $obj['video_password'] = empty($rowOriginal['video_password']) ? '' : $rowOriginal['video_password'];
+                }
+                if (self::forceAudio()) {
                     $obj['type'] = 'audio';
-                }else if(self::forceArticle()){
+                } else if (self::forceArticle()) {
                     $obj['type'] = 'article';
                 }
                 return $obj;
@@ -1654,12 +1734,15 @@ if (!class_exists('Video')) {
             TimeLogEnd($timeLogName, __LINE__, $TimeLogLimit);
             $row = cleanUpRowFromDatabase($row);
             if (!self::canEdit($row['id'])) {
-                if (!empty($row['video_password'])) {
-                    $row['video_password'] = 1;
+                if (!empty($rowOriginal['video_password'])) {
+                    $row['video_password'] = '1';
                 } else {
-                    $row['video_password'] = 0;
+                    $row['video_password'] = '0';
                 }
+            } else {
+                $row['video_password'] = empty($rowOriginal['video_password']) ? '' : $rowOriginal['video_password'];
             }
+            $row['externalOptions'] = _json_decode($row['externalOptions']);
             TimeLogEnd($timeLogName, __LINE__, $TimeLogLimit);
             if ($getStatistcs) {
                 $previewsMonth = date("Y-m-d 00:00:00", strtotime("-30 days"));
@@ -1673,7 +1756,7 @@ if (!class_exists('Video')) {
             }
             TimeLogEnd($timeLogName, __LINE__, $TimeLogLimit);
             $otherInfocachename = "otherInfo{$row['id']}";
-            $otherInfo = object_to_array(ObjectYPT::getCache($otherInfocachename, 600));
+            $otherInfo = object_to_array(ObjectYPT::getCacheGlobal($otherInfocachename, 600));
             TimeLogEnd($timeLogName, __LINE__, $TimeLogLimit);
             if (empty($otherInfo)) {
                 $otherInfo = [];
@@ -1683,7 +1766,7 @@ if (!class_exists('Video')) {
                 //TimeLogEnd("video::otherInfo", __LINE__, 0.05);
                 $otherInfo['tags'] = self::getTags($row['id']);
                 //TimeLogEnd("video::otherInfo", __LINE__, 0.05);
-                $cached = ObjectYPT::setCache($otherInfocachename, $otherInfo);
+                $cached = ObjectYPT::setCacheGlobal($otherInfocachename, $otherInfo);
                 //TimeLogEnd("video::otherInfo", __LINE__, 0.05);
                 //_error_log("video::getInfo cache " . json_encode($cached));
             }
@@ -1726,12 +1809,12 @@ if (!class_exists('Video')) {
             //var_dump($row['userExternalOptions']);exit;
             $row = array_merge($row, AVideoPlugin::getAllVideosArray($row['id']));
             TimeLogEnd($timeLogName, __LINE__, $TimeLogLimit);
-            ObjectYPT::setCache($name, $row);
+            ObjectYPT::setCacheGlobal($name, $row);
             TimeLogEnd($timeLogName, __LINE__, $TimeLogLimit);
-            
-            if(self::forceAudio()){
+
+            if (self::forceAudio()) {
                 $video['type'] = 'audio';
-            }else if(self::forceArticle()){
+            } else if (self::forceArticle()) {
                 $video['type'] = 'article';
             }
             return $row;
@@ -1748,7 +1831,7 @@ if (!class_exists('Video')) {
 
             $posters = Video::getMediaSessionPosters($videos_id);
             //var_dump($posters);exit;
-            if(empty($posters)){
+            if (empty($posters)) {
                 $posters = array();
             }
 
@@ -1763,7 +1846,7 @@ if (!class_exists('Video')) {
         }
 
         public static function htmlDescription($description) {
-            if(empty($description)){
+            if (empty($description)) {
                 return '';
             }
             if (strip_tags($description) !== $description) {
@@ -1872,7 +1955,7 @@ if (!class_exists('Video')) {
          * @param string $showOnlyLoggedUserVideos
          * @return array
          */
-        public static function getAllVideosLight($status = "viewable", $showOnlyLoggedUserVideos = false, $showUnlisted = false, $suggestedOnly = false, $type = '') {
+        public static function getAllVideosLight($status = "viewable", $showOnlyLoggedUserVideos = false, $showUnlisted = false, $suggestedOnly = false, $type = '', $max_duration_in_seconds=0) {
             global $global, $config;
             if ($config->currentVersionLowerThen('5')) {
                 return [];
@@ -1919,15 +2002,23 @@ if (!class_exists('Video')) {
             if (!empty($_REQUEST['catName'])) {
                 $catName = ($_REQUEST['catName']);
                 $sql .= " AND (c.clean_name = '{$catName}' ";
-                if(empty($_REQUEST['doNotShowCatChilds'])){
+                if (empty($_REQUEST['doNotShowCatChilds'])) {
                     $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
                 }
                 $sql .= " )";
             }
-            $sql .= AVideoPlugin::getVideoWhereClause();
+
             if (!empty($type)) {
                 $sql .= " AND v.type = '" . $type . "' ";
             }
+
+            if(!empty($max_duration_in_seconds)){
+                $max_duration_in_seconds = intval($max_duration_in_seconds);
+                $sql .= " AND duration_in_seconds <= {$max_duration_in_seconds} ";
+            }
+
+            $sql .= AVideoPlugin::getVideoWhereClause();
+
             if ($suggestedOnly) {
                 $sql .= " AND v.isSuggested = 1 AND v.status = '" . self::$statusActive . "' ";
                 $sql .= " ORDER BY RAND() ";
@@ -1975,7 +2066,7 @@ if (!class_exists('Video')) {
             return $videos;
         }
 
-        public static function getTotalVideos($status = "viewable", $showOnlyLoggedUserVideos = false, $ignoreGroup = false, $showUnlisted = false, $activeUsersOnly = true, $suggestedOnly = false, $type = '') {
+        public static function getTotalVideos($status = "viewable", $showOnlyLoggedUserVideos = false, $ignoreGroup = false, $showUnlisted = false, $activeUsersOnly = true, $suggestedOnly = false, $type = '', $max_duration_in_seconds=0) {
             global $global, $config, $advancedCustomUser;
             if ($config->currentVersionLowerThen('11.7')) {
                 return false;
@@ -2056,10 +2147,25 @@ if (!class_exists('Video')) {
                 }
             }
 
+            if (!empty($_GET['created'])) {
+                $_GET['created'] = preg_replace('/[^0-9: -]/', '', $_GET['created']);
+                if (is_numeric($_GET['created']) && $_GET['created'] > 0) {
+                    $_GET['created'] = intval($_GET['created']);
+                    $sql .= " AND v.created >= DATE_SUB(CURDATE(), INTERVAL {$_GET['created']} DAY)";
+                } else {
+                    $sql .= " AND v.created >= '{$_GET['created']}'";
+                }
+            }
+
+            if (!empty($_REQUEST['minViews'])) {
+                $minViews = intval($_REQUEST['minViews']);
+                $sql .= " AND v.views_count >= '{$minViews}'";
+            }
+
             if (!empty($_REQUEST['catName'])) {
                 $catName = ($_REQUEST['catName']);
                 $sql .= " AND (c.clean_name = '{$catName}' ";
-                if(empty($_REQUEST['doNotShowCatChilds'])){
+                if (empty($_REQUEST['doNotShowCatChilds'])) {
                     $sql .= " OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' )";
                 }
                 $sql .= " )";
@@ -2085,6 +2191,8 @@ if (!class_exists('Video')) {
                 $sql .= " AND v.type = '{$type}' ";
             } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video') {
                 $sql .= " AND (v.type = 'audio' OR v.type = 'video') ";
+            } else if (!empty($_REQUEST['videoType']) && $_REQUEST['videoType'] == 'audio_and_video_and_serie') {
+                $sql .= " AND (v.type = 'audio' OR v.type = 'video' OR v.type = 'serie') ";
             } else if (!empty($_REQUEST['videoType']) && in_array($_REQUEST['videoType'], self::$typeOptions)) {
                 $sql .= " AND v.type = '{$_REQUEST['videoType']}' ";
             }
@@ -2101,6 +2209,11 @@ if (!class_exists('Video')) {
                     $uid = intval($user['id']);
                     $sql .= " AND (v.users_id = '{$uid}' OR v.users_id_company  = '{$uid}')";
                 }
+            }
+
+            if(!empty($max_duration_in_seconds)){
+                $max_duration_in_seconds = intval($max_duration_in_seconds);
+                $sql .= " AND duration_in_seconds <= {$max_duration_in_seconds} ";
             }
 
             $sql .= AVideoPlugin::getVideoWhereClause();
@@ -2230,8 +2343,8 @@ if (!class_exists('Video')) {
                     $viewable[] = Video::$statusUnlistedButSearchable;
                 }
             }
-            if(User::isAdmin()){
-               $viewable[] = Video::$statusScheduledReleaseDate;
+            if (User::isAdmin()) {
+                $viewable[] = Video::$statusScheduledReleaseDate;
             }
             /*
              * Cannot do that otherwise it will list videos on the list videos menu
@@ -2338,16 +2451,23 @@ if (!class_exists('Video')) {
         }
 
         public function delete($allowOfflineUser = false) {
+            global $advancedCustomUser;
             if (!$allowOfflineUser && !$this->userCanManageVideo()) {
                 return false;
             }
-
-            global $global;
+            if (empty($advancedCustomUser)) {
+                $advancedCustomUser = AVideoPlugin::getObjectDataIfEnabled('CustomizeUser');
+            }
+            if($advancedCustomUser->nonAdminCannotDeleteVideo){
+                if(!User::isAdmin()){
+                    return false;
+                }
+            }
             if (!empty($this->id)) {
                 $this->removeNextVideos($this->id);
                 $this->removeTrailerReference($this->id);
                 $this->removeCampaign($this->id);
-                $video = self::getVideoLight($this->id);
+                //$video = self::getVideoLight($this->id);
                 $sql = "DELETE FROM videos WHERE id = ?";
             } else {
                 return false;
@@ -2643,7 +2763,8 @@ if (!class_exists('Video')) {
                     AVideoPlugin::isEnabledByName("Blackblaze_B2") ||
                     AVideoPlugin::isEnabledByName("AWS_S3") ||
                     AVideoPlugin::isEnabledByName("FTP_Storage") ||
-                    AVideoPlugin::isEnabledByName("YPTStorage") || !file_exists($file)) {
+                    AVideoPlugin::isEnabledByName("YPTStorage") || !file_exists($file)
+            ) {
                 return 0;
             }
             global $global;
@@ -2829,6 +2950,57 @@ if (!class_exists('Video')) {
             return $_getTagsHTMLLabelArray[$video_id];
         }
 
+        static function updatePrivacyInfo($videos_id) {
+            $v = new Video('', '', $videos_id);
+            $privacyInfo = self::_getPrivacyInfo($videos_id);
+            return $v->setPrivacyInfo($privacyInfo);
+        }
+
+        static function _getPrivacyInfo($videos_id) {
+            global $advancedCustomUser, $_getPrivacyInfo;
+            if (!isset($_getPrivacyInfo)) {
+                $_getPrivacyInfo = array();
+            } else {
+                if (!empty($_getPrivacyInfo[$videos_id])) {
+                    return $_getPrivacyInfo[$videos_id];
+                }
+            }
+            $responseFields = array(
+                'fans_only',
+                'password_protectd',
+                'only_for_paid',
+                'pay_per_view',
+                'user_groups',
+            );
+            $response = array('videos_id' => $videos_id);
+            $video = new Video("", "", $videos_id);
+            $ppv = AVideoPlugin::getObjectDataIfEnabled("PayPerView");
+            $response['fans_only'] = $video->getStatus() === self::$statusFansOnly;
+            if ($response['fans_only'] && AVideoPlugin::isEnabled("FansSubscriptions")) {
+                $response['fans_only_info'] = FansSubscriptions::getPlansFromUsersID($video->getUsers_id());
+            }
+            $response['password_protectd'] = $advancedCustomUser->userCanProtectVideosWithPassword && !empty($video->getVideo_password());
+            $response['only_for_paid'] = !empty($video->getOnly_for_paid());
+            $response['pay_per_view'] = $ppv && PayPerView::isVideoPayPerView($videos_id);
+            if ($response['pay_per_view'] && AVideoPlugin::isEnabled("PayPerView")) {
+                $response['pay_per_view_info'] = PayPerView::getAllPlansFromVideo($videos_id);
+            }
+            $response['user_groups'] = !Video::isPublic($videos_id);
+            if ($response['user_groups']) {
+                $response['user_groups_info'] = Video::getUserGroups($videos_id);
+            }
+            $response['isPrivate'] = false;
+            foreach ($responseFields as $value) {
+                if ($response[$value]) {
+                    $response['isPrivate'] = true;
+                    break;
+                }
+            }
+
+            $_getPrivacyInfo[$videos_id] = $response;
+            return $response;
+        }
+
         public static function getTags_($video_id, $type = "") {
             global $advancedCustom, $advancedCustomUser, $getTags_;
             $tolerance = 0.5;
@@ -2970,7 +3142,7 @@ if (!class_exists('Video')) {
                         $objTag = new stdClass();
                     } else {
                         //$objTag->type = "success";
-//$objTag->text = __("Public");
+                        //$objTag->text = __("Public");
                     }
                 } else {
                     $groupNames = [];
@@ -3021,7 +3193,7 @@ if (!class_exists('Video')) {
             TimeLogStart("video::getTags_ source $video_id, $type");
             if (empty($type) || $type === "source") {
                 $url = $video->getVideoDownloadedLink();
-                if(!empty($url)){
+                if (!empty($url)) {
                     $parse = parse_url($url);
                     $objTag = new stdClass();
                     $objTag->label = __("Source");
@@ -3136,13 +3308,17 @@ if (!class_exists('Video')) {
             if (empty($original_title)) {
                 $original_title = $clean_title;
             }
-
-            $sql = "SELECT * FROM videos WHERE clean_title = '{$clean_title}' ";
+            $values = array();
+            $sql = "SELECT * FROM videos WHERE clean_title = ? ";
+            $formats = "s";
+            $values[] = $clean_title;
             if (!empty($videoId)) {
-                $sql .= " AND id != {$videoId} ";
+                $sql .= " AND id != ? ";
+                $formats .= "i";
+                $values[] = $videoId;
             }
             $sql .= " LIMIT 1";
-            $res = sqlDAL::readSql($sql, "", [], true);
+            $res = sqlDAL::readSql($sql, $formats, $values, true);
             $cleanTitleExists = sqlDAL::fetchAssoc($res);
             sqlDAL::close($res);
             if ($cleanTitleExists != false) {
@@ -3274,7 +3450,7 @@ if (!class_exists('Video')) {
                 return false;
             }
             $size = filesize($source['path']);
-            if ($size <= 20) {// it is a dummy file
+            if ($size <= 20) { // it is a dummy file
                 $url = $source['url'];
                 _error_log("getExistingVideoFile:: dummy file, download it " . json_encode($source));
                 $filename = getTmpDir("getExistingVideoFile") . md5($url);
@@ -3389,14 +3565,14 @@ if (!class_exists('Video')) {
 
         public function queue($types = []) {
             global $config, $global;
-            
+
             if (!User::canUpload()) {
                 return false;
             }
-            
+
             $obj = new stdClass();
             $obj->error = true;
-        
+
             $target = $config->getEncoderURL() . "queue";
             $postFields = [
                 'user' => User::getUserName(),
@@ -3406,15 +3582,15 @@ if (!class_exists('Video')) {
                 'videos_id' => $this->getId(),
                 "notifyURL" => "{$global['webSiteRootURL']}",
             ];
-        
+
             if (empty($types) && AVideoPlugin::isEnabledByName("VideoHLS")) {
                 $postFields['inputAutoHLS'] = 1;
             } elseif (!empty($types)) {
                 $postFields = array_merge($postFields, $types);
             }
-        
+
             _error_log("SEND To QUEUE: ($target) " . json_encode($postFields));
-            
+
             $curl = curl_init();
             curl_setopt_array($curl, array(
                 CURLOPT_URL => $target,
@@ -3424,23 +3600,22 @@ if (!class_exists('Video')) {
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYHOST => false
             ));
-            
+
             $r = curl_exec($curl);
             $obj->response = $r;
-            
+
             if ($errno = curl_errno($curl)) {
                 $error_message = curl_strerror($errno);
                 $obj->msg = "cURL error ({$errno}):\n {$error_message}";
             } else {
                 $obj->error = false;
             }
-            
+
             _error_log("QUEUE CURL: ($target) " . json_encode($obj));
             curl_close($curl);
             Configuration::deleteEncoderURLCache();
             return $obj;
         }
-        
 
         public function getVideoLink() {
             return $this->videoLink;
@@ -3448,7 +3623,7 @@ if (!class_exists('Video')) {
 
         public function setVideoLink($videoLink) {
             AVideoPlugin::onVideoSetVideoLink($this->id, $this->videoLink, $videoLink);
-            $this->videoLink = $videoLink;
+            $this->videoLink = fixURL($videoLink);
         }
 
         public function getCan_download() {
@@ -3659,7 +3834,8 @@ if (!class_exists('Video')) {
                             $type !== "_thumbsSmallV2.jpg" &&
                             $type !== "_portrait_thumbsV2.jpg" &&
                             $type !== "_portrait_thumbsSmallV2.jpg" &&
-                            $type !== "_thumbsV2_jpg.webp") {
+                            $type !== "_thumbsV2_jpg.webp"
+                    ) {
                         $VideoGetSourceFile[$cacheName] = ['path' => false, 'url' => false];
                         //if($type=='.jpg'){echo '----'.PHP_EOL;var_dump($type, $source);echo '----'.PHP_EOL;};
                         //echo PHP_EOL.'---'.PHP_EOL;var_dump($source, $type, !file_exists($source['path']), ($type !== ".m3u8" && !is_dir($source['path']) && (filesize($source['path']) < 1000 && filesize($source['path']) != 10)));echo PHP_EOL.'+++'.PHP_EOL;
@@ -3719,7 +3895,7 @@ if (!class_exists('Video')) {
             if (!isset($__getPaths)) {
                 $__getPaths = [];
             }
-            if(empty($videoFilename)){
+            if (empty($videoFilename)) {
                 return array();
             }
             if (!empty($__getPaths[$videoFilename])) {
@@ -4054,6 +4230,9 @@ if (!class_exists('Video')) {
                         }
                         if (!isset($return['resolution']) || $resolution > $return['resolution']) {
                             $return = $value;
+                            if (empty($resolution)) {
+                                $resolution = 480;
+                            }
                             $return['resolution'] = $resolution;
                             $return['resolution_text'] = getResolutionText($return['resolution']);
                             $return['resolution_label'] = getResolutionLabel($return['resolution']);
@@ -4062,7 +4241,8 @@ if (!class_exists('Video')) {
                     }
                 }
             }
-            //_error_log("Video:::getHigestResolution::getVideosURL_V2($filename) 3 FROM database " . $return['resolution'] . ' - ' . $v['path']); //exit;
+            //_error_log("Video:::getHigestResolution::getVideosURL_V2($filename) 3 FROM database " . json_encode($return)); //exit;
+            //_error_log("Video:::getHigestResolution::getVideosURL_V2($filename) 4 FROM database " . json_encode($sources)); //exit;
             //if($filename=='video_210916143432_c426'){var_dump(1, $filename, $return);exit;}
             if (!empty($return)) {
                 $video->setVideoHigestResolution($return['resolution']);
@@ -4197,19 +4377,23 @@ if (!class_exists('Video')) {
             return self::getVideosPaths($video->getFilename(), true);
         }
 
-        public static function getSourceFileURL($filename, $includeS3 = false) {
+        public static function getSourceFileURL($filename, $includeS3 = false, $fileType = '') {
             $sources = self::getVideosPaths($filename, $includeS3);
-            if (!empty($sources['mp3'])) {
-                return $sources['mp3'];
+            if (empty($fileType) || $fileType == 'audio') {
+                if (!empty($sources['mp3'])) {
+                    return $sources['mp3'];
+                }
             }
-            if (!empty($sources['webm'])) {
-                return end($sources['webm']);
-            }
-            if (!empty($sources['m3u8']) && !empty($sources['m3u8']['url'])) {
-                return $sources['m3u8']['url'];
-            }
-            if (!empty($sources['mp4'])) {
-                return end($sources['mp4']);
+            if (empty($fileType) || $fileType == 'video') {
+                if (!empty($sources['webm'])) {
+                    return end($sources['webm']);
+                }
+                if (!empty($sources['m3u8']) && !empty($sources['m3u8']['url'])) {
+                    return $sources['m3u8']['url'];
+                }
+                if (!empty($sources['mp4'])) {
+                    return end($sources['mp4']);
+                }
             }
             return false;
         }
@@ -4268,7 +4452,7 @@ if (!class_exists('Video')) {
                 $videos['mp3'] = $source['url'];
             }
 
-            if (empty($videos) && $try===0) {
+            if (empty($videos) && $try === 0) {
                 return self::getVideosPathsSearchingDir($filename, $includeS3);
             }
             $c = ObjectYPT::setCache($cacheName, $videos);
@@ -4286,7 +4470,7 @@ if (!class_exists('Video')) {
              */
             $paths = self::getPaths($filename);
             $dir = $paths["path"];
-            if(!is_dir($dir)){
+            if (!is_dir($dir)) {
                 return array();
             }
             $allowedExtensions = array('mp4');
@@ -4299,7 +4483,7 @@ if (!class_exists('Video')) {
                 if (in_array($ext, $allowedExtensions)) {
                     $path = "$dir/$file";
                     $resolution = self::getResolutionFromFilename($path);
-                    if(!in_array($resolution, $global['avideo_resolutions'])){
+                    if (!in_array($resolution, $global['avideo_resolutions'])) {
                         _error_log("getVideosPathsGloob($filename) new resolution found $resolution");
                         $global['avideo_resolutions'][] = $resolution;
                         if (!empty($resolution)) {
@@ -4370,8 +4554,8 @@ if (!class_exists('Video')) {
             if (empty($imagePath) || !file_exists($imagePath)) {
                 $imagePath = $images->poster;
             }
-            if(empty($imagePath) || empty(@filesize($imagePath))){
-                if(AVideoPlugin::isEnabledByName('MP4ThumbsAndGif')){
+            if (empty($imagePath) || empty(@filesize($imagePath))) {
+                if (AVideoPlugin::isEnabledByName('MP4ThumbsAndGif')) {
                     MP4ThumbsAndGif::getImageInDuration($videos_id, 'jpg');
                 }
             }
@@ -4594,14 +4778,14 @@ if (!class_exists('Video')) {
             $return = (object) self::getImageFromFilename($video->getFilename());
             if (empty($return->posterLandscapePath)) {
                 $path = Video::getPaths($video->getFilename());
-                if(!empty($path['path'])){
+                if (!empty($path['path'])) {
                     $return->posterLandscapePath = "{$path['path']}{$path['filename']}.jpg";
                     $return->posterLandscape = "{$path['url']}{$path['filename']}.jpg";
                 }
             }
             if (empty($return->posterPortraitPath)) {
                 $path = Video::getPaths($video->getFilename());
-                if(!empty($path['path'])){
+                if (!empty($path['path'])) {
                     $return->posterPortraitPath = "{$path['path']}{$path['filename']}_portrait.jpg";
                     $return->posterPortrait = "{$path['url']}{$path['filename']}_portrait.jpg";
                 }
@@ -4609,9 +4793,9 @@ if (!class_exists('Video')) {
 
             if (defaultIsLandscape() && !empty($return->posterLandscape)) {
                 $return->default = ['url' => $return->posterLandscape, 'path' => $return->posterLandscapePath];
-            } else if(!empty($return->posterPortrait)){
+            } else if (!empty($return->posterPortrait)) {
                 $return->default = ['url' => $return->posterPortrait, 'path' => $return->posterPortraitPath];
-            } else{
+            } else {
                 $return->default = ['url' => getCDN() . "view/img/notfoundThumbs.jpg", 'path' => "{$global['systemRootPath']}view/img/notfoundThumbs.jpg"];
             }
 
@@ -5153,6 +5337,126 @@ if (!class_exists('Video')) {
             return false;
         }
 
+        static function whyUserCannotWatchVideo($users_id, $videos_id) {
+            $response = new stdClass();
+            $response->canWatch = true;
+            $response->why = [];
+            $response->users_id = $users_id;
+            $response->videos_id = $videos_id;
+            
+            if(empty($videos_id)){
+                $response->canWatch = false;
+                $response->why[] = 'videos_id is empty';
+                return $response;
+            }            
+            
+            $video = new Video("", "", $videos_id);
+            
+            if(empty($video)){
+                $response->canWatch = false;
+                $response->why[] = "videos_id={$videos_id} not found";
+                return $response;
+            }   
+            
+            if($video->getStatus() == Video::$statusInactive){
+                $response->canWatch = false;
+                $response->why[] = "This video is inactive";
+            }  
+            
+            if($video->getStatus() == Video::$statusBrokenMissingFiles){
+                $response->canWatch = false;
+                $response->why[] = "This video is broken";
+            }  
+            
+            if($video->getStatus() == Video::$statusEncoding){
+                $response->canWatch = false;
+                $response->why[] = "This video is encoding, please wait";
+            }  
+            
+            if($video->getStatus() == Video::$statusTranfering){
+                $response->canWatch = false;
+                $response->why[] = "This video is still transfering, please wait";
+            }  
+            
+            if (empty($video->getOnly_for_paid())) {
+                $response->why[] = 'This vidoe is set only for paid users, so you MUST have a PPV or a Subscription active';
+            }
+            $rows = UserGroups::getVideosAndCategoriesUserGroups($videos_id);
+            if (empty($rows)) {
+                $response->why[] = 'The video does not have any usergroup set';
+            } else {
+                if (self::userGroupAndVideoGroupMatch($users_id, $videos_id)) {
+                    $videosug = self::getVideoGroups($videos_id);
+                    $categoriessug = UserGroups::getCategoriesGroups($videos_id);
+                    $rowsUser = UserGroups::getUserGroups(User::getId());
+                    // what group the user needs
+                }
+            }
+
+            // DiskUploadQuota
+            $name = 'DiskUploadQuota';
+            if ($p = AVideoPlugin::loadPluginIfEnabled($name)) {
+                $obj = $p->getDataObject();
+                if ($obj->ifExceedQuotaDoNotPlayVideos) {
+                    if ($p->videoOwnerExceedsQuota($videos_id)) {
+                        $response->canWatch = false;
+                        $response->why[] = 'DiskUploadQuota videoOwnerExceedsQuota and ifExceedQuotaDoNotPlayVideos';
+                    }
+                } else {
+                    if ($p->videoOwnerExceedsQuota($videos_id)) {
+                        $response->why[] = 'DiskUploadQuota is active but the owner still have quota';
+                    } else {
+                        $response->why[] = 'DiskUploadQuota is active but the owner quota os gone but ifExceedQuotaDoNotPlayVideos is deactivated';
+                    }
+                }
+            }
+            // FansSubscriptions
+            $name = 'FansSubscriptions';
+            if ($p = AVideoPlugin::loadPluginIfEnabled($name)) {
+                $obj = $p->getDataObject();
+                if (FansSubscriptions::isFansOnly($videos_id)) {
+                    $currentSubscription = Fsubscriptions::getSubscriptionToChannel($users_id, $videos_id);
+                    if (empty($currentSubscription)) {
+                        if ($obj->allowFreePlayWithAds) {
+                            $response->why[] = 'FansSubscriptions this video is set for fans only and you do not have subscription this video, but it will allow free play with ads';
+                        } else {
+                            $response->canWatch = false;
+                            $response->why[] = 'FansSubscriptions this video is set for fans only and you do not have subscription this video';
+                        }
+                    }
+                }
+            }
+            // PayPerView
+            $name = 'PayPerView';
+            if ($p = AVideoPlugin::loadPluginIfEnabled($name)) {
+                $obj = $p->getDataObject();
+                $isVideoPPV = PayPerView::isVideoPayPerView($videos_id);
+                if ($isVideoPPV) {
+                    // the video has a PPV set
+                    if (!PPV_Plans_Users_Videos::userCanWatchVideo($users_id, $videos_id)) {
+                        if (!$obj->allowFreePlayWithAds) {
+                            $response->canWatch = false;
+                            $response->why[] = 'There is a PPV set for this video and we do not allow free play on it';
+                        }
+                    }
+                }
+            }
+            // Subscription
+            $name = 'Subscription';
+            if ($p = AVideoPlugin::loadPluginIfEnabled($name)) {
+                $plans = $p->getPlansFromVideo($videos_id);
+                if (!empty($plans)) {
+                    if (!Video::userGroupAndVideoGroupMatch($users_id, $videos_id)) {
+                        if (!$obj->allowFreePlayWithAds) {
+                            $response->canWatch = false;
+                            $response->why[] = 'There is a Subscription set for this video and we do not allow free play on it';
+                        }
+                    }
+                }
+            }
+            return $response;
+        }
+
         public static function userGroupAndVideoGroupMatch($users_id, $videos_id) {
             if (empty($videos_id)) {
                 return false;
@@ -5239,6 +5543,25 @@ if (!class_exists('Video')) {
             AVideoPlugin::onVideoSetVideoStartSeconds($this->id, $externalOptions->videoStartSeconds, $videoStartSeconds);
             $externalOptions->videoStartSeconds = intval($videoStartSeconds);
             $this->setExternalOptions(json_encode($externalOptions));
+        }
+
+        public function setPrivacyInfo($object) {
+            $externalOptions = _json_decode($this->getExternalOptions());
+            if (empty($externalOptions)) {
+                $externalOptions = new stdClass();
+            }
+            $externalOptions->privacyInfo = $object;
+            $this->setExternalOptions(json_encode($externalOptions));
+            return $externalOptions->privacyInfo;
+        }
+
+        public function getPrivacyInfo() {
+            $externalOptions = _json_decode($this->getExternalOptions());
+            if (empty($externalOptions->privacyInfo)) {
+                $externalOptions->privacyInfo = self::_getPrivacyInfo($this->id);
+                $this->setPrivacyInfo($externalOptions->privacyInfo);
+            }
+            return $externalOptions->privacyInfo;
         }
 
         public function setVideoEmbedWhitelist($embedWhitelist) {
@@ -5359,18 +5682,18 @@ if (!class_exists('Video')) {
             return ReportVideo::getAllReportedUsersIdFromUser($users_id);
         }
 
-        public static function forceAudio(){
-            if(!empty($_REQUEST['includeType'])){
-                if($_REQUEST['includeType'] === 'audio'){
+        public static function forceAudio() {
+            if (!empty($_REQUEST['includeType'])) {
+                if ($_REQUEST['includeType'] === 'audio') {
                     return true;
                 }
             }
             return false;
         }
 
-        public static function forceArticle(){
-            if(!empty($_REQUEST['includeType'])){
-                if($_REQUEST['includeType'] === 'article'){
+        public static function forceArticle() {
+            if (!empty($_REQUEST['includeType'])) {
+                if ($_REQUEST['includeType'] === 'article') {
                     return true;
                 }
             }
@@ -5378,10 +5701,10 @@ if (!class_exists('Video')) {
         }
 
         public static function getIncludeType($video) {
-            if(self::forceAudio()){
+            if (self::forceAudio()) {
                 return 'audio';
             }
-            if(self::forceArticle()){
+            if (self::forceArticle()) {
                 return 'article';
             }
             $vType = $video['type'];
@@ -5675,7 +5998,7 @@ if (!class_exists('Video')) {
                 $images = object_to_array($video['images']);
             }
             //var_dump($videos_id, $video, $images);
-            $img = getVideoImagewithHoverAnimation($images['poster'], $images['thumbsGif'], $video['title'], $preloadImage, $doNotUseAnimatedGif);
+            $img = getVideoImagewithHoverAnimation(@$images['poster'], @$images['thumbsGif'], @$video['title'], $preloadImage, $doNotUseAnimatedGif);
             $program = AVideoPlugin::loadPluginIfEnabled('PlayLists');
             $isserie = Video::isSerie($videos_id);
             $isserieClass = "";
@@ -5868,7 +6191,7 @@ if (!class_exists('Video')) {
             if ($video->getStatus() == Video::$statusActive || $video->getStatus() == Video::$statusUnlisted || $video->getStatus() == Video::$statusUnlistedButSearchable) {
                 if ($video->getType() == 'audio' || $video->getType() == 'video') {
                     if (self::isMediaFileMissing($video->getFilename())) {
-                        _error_log("Video::checkIfIsBroken($videos_id) true " . $video->getFilename());
+                        _error_log("Video::checkIfIsBroken($videos_id) true " . $video->getFilename() . ' status=[' . $video->getStatus() . ']' . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
                         $video->setStatus(Video::$statusBrokenMissingFiles);
                         Video::clearCache($videos_id);
                         return true;
@@ -5879,7 +6202,9 @@ if (!class_exists('Video')) {
         }
 
         public static function isMediaFileMissing($filename, $cacheCleared = false) {
-            $sources = getVideosURL_V2($filename);
+            global $getVideosURL_V2Array;
+            unset($getVideosURL_V2Array[$filename]);
+            $sources = getVideosURL_V2($filename, true);
             $search = ['mp3', 'mp4', 'm3u8', 'webm'];
             $found = false;
             foreach ($sources as $key => $value1) {
@@ -6059,7 +6384,18 @@ if (!class_exists('Video')) {
             }
             return $url;
         }
-        
+
+        static public function getVideoWithMoreViews() {
+            global $_getVideoWithMoreViews;
+            if (empty($_getVideoWithMoreView)) {
+                $sql = 'SELECT * FROM `videos` ORDER BY `views_count` DESC LIMIT 1';
+                $res = sqlDAL::readSql($sql);
+                $_getVideoWithMoreViews = sqlDAL::fetchAssoc($res);
+                sqlDAL::close($res);
+            }
+            return $_getVideoWithMoreViews;
+        }
+
     }
 
 }

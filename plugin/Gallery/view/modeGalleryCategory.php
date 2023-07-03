@@ -10,12 +10,14 @@ $obj = AVideoPlugin::getObjectData("Gallery");
 $liveobj = AVideoPlugin::getObjectDataIfEnabled("Live");
 $_REQUEST['rowCount'] = 2;
 $_REQUEST['current'] = getCurrentPage();
-
+if(empty($_GET['tagsid']) && !empty($_REQUEST['tags_id'])){
+    $_GET['tagsid'] = $_REQUEST['tags_id'];
+}
 $onlySuggested = $obj->CategoriesShowOnlySuggested;
 if(!empty(getSearchVar())){
     $onlySuggested = false;
 }
-$sort = $_POST['sort'];
+$sort = @$_POST['sort'];
 unset($_POST['sort']);
 $categories = Category::getAllCategories(false, true, $onlySuggested);
 $total = Category::getTotalCategories(false, true, $onlySuggested);
@@ -24,7 +26,7 @@ $page = getCurrentPage();
 if ($totalPages < $page) {
     $page = $totalPages;
 }
-$link = "{$global['webSiteRootURL']}plugin/Gallery/view/modeGalleryCategory.php?tags_id=" . intval(@$_GET['tagsid']) . "&search=" . htmlentities(urlencode(getSearchVar())) . "&current={page}";
+$link = addSearchOptions("{$global['webSiteRootURL']}plugin/Gallery/view/modeGalleryCategory.php") . "&current={page}";
 
 if (empty($categories)) {
     return false;

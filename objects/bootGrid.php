@@ -3,7 +3,8 @@ class BootGrid
 {
     public static function getSqlFromPost($searchFieldsNames = [], $keyPrefix = "", $alternativeOrderBy = "", $doNotSearch=false, $FIND_IN_SET = "")
     {
-        if (empty($doNotSearch)) {
+        global $global;
+        if (empty($doNotSearch) && empty($global['doNotSearch']) ) {
             $sql = self::getSqlSearchFromPost($searchFieldsNames);
         } else {
             $sql = '';
@@ -40,6 +41,7 @@ class BootGrid
         $current = getCurrentPage();
         $currentP = ($current-1)*$rowCount;
         $currentP = $currentP < 0 ? 0 : $currentP;
+
         if ($rowCount>0) {
             $sql .= " LIMIT $currentP, {$rowCount} ";
         }

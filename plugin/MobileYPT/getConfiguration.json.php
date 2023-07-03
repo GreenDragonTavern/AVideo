@@ -2,7 +2,12 @@
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
 require_once dirname(__FILE__) . '/../../videos/configuration.php';
-
+/*
+AVideoPlugin::getObjectData("Cache");
+ObjectYPT::deleteALLCache();
+ObjectYPT::deleteAllSessionCache();
+Cache::deleteAllCache();
+*/
 allowOrigin();
 $objMM = AVideoPlugin::getObjectData("MobileYPT");
 
@@ -31,9 +36,11 @@ $objMM->doNotShowPhoneOnSignup = $customizeUser->doNotShowPhoneOnSignup;
 
 $chat2 = AVideoPlugin::getDataObjectIfEnabled('Chat2');
 if(!empty($chat2)){
+    $objMM->chat2IsEnabled = true;
     $objMM->chat2ShowOnLive = $chat2->showOnLive;
     $objMM->chat2ShowOnUserVideos = $chat2->showOnUserVideos;
 }else{
+    $objMM->chat2IsEnabled = false;
     $objMM->chat2ShowOnLive = false;
     $objMM->chat2ShowOnUserVideos = false;
 }
@@ -112,7 +119,10 @@ if (AVideoPlugin::isEnabledByName("TopMenu")) {
         }
     }
 }
+
+$objMM->defaultIsPortrait = defaultIsPortrait();
+
 $str = _json_encode($objMM);
-_error_log('getConfiguration line strlen='.strlen($str));
+_error_log('getConfiguration strlen='.strlen($str));
 echo $str;
 exit;

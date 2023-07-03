@@ -52,6 +52,7 @@ class PlayerSkins extends PluginAbstract {
         $obj->playerCustomDataSetup = "";
         $obj->showSocialShareOnEmbed = true;
         $obj->showLoopButton = true;
+        $obj->showPictureInPicture = true;
         $obj->showLogo = false;
         $obj->showShareSocial = true;
         $obj->showShareAutoplay = true;
@@ -318,11 +319,12 @@ class PlayerSkins extends PluginAbstract {
                 PlayerSkins::getStartPlayerJS(file_get_contents("{$global['systemRootPath']}plugin/PlayerSkins/logo.js"));
                 //$js .= "<script src=\"".getCDN()."plugin/PlayerSkins/logo.js\"></script>";
             }
-
+            if($obj->showPictureInPicture){
+                PlayerSkins::getStartPlayerJS(file_get_contents("{$global['systemRootPath']}plugin/PlayerSkins/pipButton.js"));
+            }
             if ($obj->showShareSocial && CustomizeUser::canShareVideosFromVideo(@$video['id'])) {
                 $social = getSocialModal(@$video['id'], @$url, @$title);
                 PlayerSkins::getStartPlayerJS(file_get_contents("{$global['systemRootPath']}plugin/PlayerSkins/shareButton.js"));
-                //$js .= "<script src=\"".getCDN()."plugin/PlayerSkins/shareButton.js\"></script>";
                 $js .= $social['html'];
                 $js .= "<script>function tooglePlayersocial(){showSharing{$social['id']}();}</script>";
             }
@@ -407,6 +409,9 @@ class PlayerSkins extends PluginAbstract {
                 $dataSetup[] = "sources:[{type: \"video/vimeo\", src: \"{$video['videoLink']}\"}]";
                 $dataSetup[] = "vimeo:{customVars: {wmode: \"transparent\", origin: \"{$global['webSiteRootURL']}\"}}";
             }
+        }
+        if(!$obj->showPictureInPicture){
+            $dataSetup[] = "controlBar: {pictureInPictureToggle: false}";
         }
 
         $pluginsDataSetup = AVideoPlugin::dataSetup();
@@ -531,7 +536,7 @@ class PlayerSkins extends PluginAbstract {
         }
 
         $js .= "}
-        player.ready(function () {";
+        player.ready(function () {console.log('player.ready');";
 
         $js .= "player.on('error', () => {
             AvideoJSError(player.error().code);
@@ -552,12 +557,15 @@ class PlayerSkins extends PluginAbstract {
             $play = "player.volume(0);player.muted(true);playerPlayMutedIfAutoPlay({$currentTime});";
         }
 
-        $js .= "var err = this.error();
+        $js .= "try {
+            var err = this.error();
             if (err && err.code) {
                 $('.vjs-error-display').hide();
                 $('#mainVideo').find('.vjs-poster').css({'background-image': 'url({$global['webSiteRootURL']}plugin/Live/view/Offline.jpg)'});
-            }
-            " . implode(PHP_EOL, $prepareStartPlayerJS_onPlayerReady) . "
+            }} catch (e) {
+    console.error('error-display', e);
+}try {
+            " . implode(' } catch (e) {console.error(\'onPlayerReady\', e);} try { ', $prepareStartPlayerJS_onPlayerReady) . " } catch (e) {console.error('onPlayerReady', e);}
             {$play}
         });";
 

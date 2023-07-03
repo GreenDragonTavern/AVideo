@@ -129,6 +129,7 @@ Passcode: {password}
             "sub" => "meet.jitsi",
             "room" => $room,
             "exp" => strtotime("+30 hours"),
+            "nbf" => strtotime("-24 hours"),
             "moderator" => $isModerator,
         ];
         return $jitsiPayload; // HS256
@@ -250,7 +251,10 @@ Passcode: {password}
             $json->msg = "From Cache";
         } else {
             $url = $meetServer . "api/checkMeet.json.php?webSiteRootURL=" . urlencode($global['webSiteRootURL']) . "&secret=" . $secret;
+            _error_log("serverlabels getMeetServerStatus $url ");
             $content = url_get_contents($url);
+            _error_log("serverlabels getMeetServerStatus done $url ");
+            
             $json = _json_decode($content);
             if (!empty($json)) {
                 $json->time = time();

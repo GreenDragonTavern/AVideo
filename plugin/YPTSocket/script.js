@@ -35,14 +35,18 @@ function socketConnect() {
     }
     conn = new WebSocket(url);
     setSocketIconStatus('loading');
-    conn.onopen = function (e) {
-        socketConnectRequested = 0;
-        socketConnectRetryTimeout = 2000;
-        clearTimeout(socketConnectTimeout);
-        console.log("socketConnect: Socket onopen");
-        onSocketOpen();
-        return false;
-    };
+    try {
+        conn.onopen = function (e) {
+            socketConnectRequested = 0;
+            socketConnectRetryTimeout = 2000;
+            clearTimeout(socketConnectTimeout);
+            console.log("socketConnect: Socket onopen");
+            onSocketOpen();
+            return false;
+        };
+    } catch (e) {
+        console.log("socketConnect: Error onopen", e);
+    }
     conn.onmessage = function (e) {
         var json = JSON.parse(e.data);
         consolelog("Socket onmessage conn.onmessage", json);
@@ -279,7 +283,7 @@ function parseSocketResponse() {
                             html += '<div class="socketUserName" onclick="socketUserNameToggle(\'#' + socketUserDivID + '\');">';
                             html += '<i class="fas fa-caret-down"></i><i class="fas fa-caret-up"></i>';
                             if (json.users_uri[prop][prop2].length < 50) {
-                                html += '<img src="' + webSiteRootURL + 'user/' + json.users_uri[prop][prop2][prop3].users_id + '/foto.png" class="img img-circle img-responsive">';
+                                // html += '<img src="' + webSiteRootURL + 'user/' + json.users_uri[prop][prop2][prop3].users_id + '/foto.png" class="img img-circle img-responsive">';
                             }
                             html += json.users_uri[prop][prop2][prop3].user_name + '</div>';
                             html += '<div class="socketUserPages"></div></div>';
@@ -320,7 +324,7 @@ function parseSocketResponse() {
                         var html = '<div class="socketUserDiv" id="' + socketUserDivID + '" >';
                         html += '<div class="socketUserName" onclick="socketUserNameToggle(\'#' + socketUserDivID + '\');">';
                         html += '<i class="fas fa-caret-down"></i><i class="fas fa-caret-up"></i>';
-                        html += '<img src="' + webSiteRootURL + 'user/' + element.users_id + '/foto.png" class="img img-circle img-responsive">';
+                        // html += '<img src="' + webSiteRootURL + 'user/' + element.users_id + '/foto.png" class="img img-circle img-responsive">';
                         html += element.identification + '</div>';
                         html += '<div class="socketUserPages"></div></div>';
                         $('#socketUsersURI').append(html);

@@ -75,7 +75,7 @@ foreach ($playList as $key => $value) {
                 $videoStartSeconds = parseDurationToSeconds(@$externalOptions->videoStartSeconds);
             }
 
-            $playListData[] = new PlayListElement($value['title'], $value['description'], $value['duration'], $playListSources, $thumbnail, $images->poster, $videoStartSeconds, $value['cre'], $value['likes'], $value['views_count'], $value['videos_id'], "embedPlayList subPlaylistCollection-{$oldValue['serie_playlists_id']}");
+            $playListData[] = new PlayListElement(@$value['title'], @$value['description'], @$value['duration'], $playListSources, $thumbnail, $images->poster, $videoStartSeconds, $value['cre'], @$value['likes'], @$value['views_count'], @$value['videos_id'], "embedPlayList subPlaylistCollection-{$oldValue['serie_playlists_id']}");
             //$playListData_videos_id[] = $value['id'];
         }
     } else {
@@ -111,7 +111,7 @@ foreach ($playList as $key => $value) {
         if (empty($videoStartSeconds)) {
             $videoStartSeconds = parseDurationToSeconds(@$externalOptions->videoStartSeconds);
         }
-        $playListData[] = new PlayListElement($value['title'], $value['description'], $value['duration'], $playListSources, $thumbnail, $images->poster, $videoStartSeconds, $value['cre'], $value['likes'], $value['views_count'], $value['videos_id'], "embedPlayList ", $subtitleTracks);
+        $playListData[] = new PlayListElement(@$value['title'], @$value['description'], @$value['duration'], $playListSources, $thumbnail, $images->poster, $videoStartSeconds, $value['cre'],@$value['likes'], @$value['views_count'], @$value['videos_id'], "embedPlayList ", $subtitleTracks);
         //$playListData_videos_id[] = $value['videos_id'];
     }
 }
@@ -132,7 +132,6 @@ if ($serie = PlayLists::isPlayListASerie($pl->getId())) {
 }
 $_REQUEST['hideAutoplaySwitch'] = 1;
 //var_dump($playListData_videos_id);exit;
-
 $pl_index = getPlayListIndex();
 $str = file_get_contents($global['systemRootPath'] . 'plugin/PlayLists/getStartPlayerJS.js');
 $str = str_replace('{$pl_index}', $pl_index, $str);
@@ -157,7 +156,7 @@ PlayerSkins::getStartPlayerJS($str);
         <link href="<?php echo getCDN(); ?>view/css/social.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo getURL('node_modules/fontawesome-free/css/all.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
-        <link href="<?php echo getCDN(); ?>plugin/PlayLists/videojs-playlist-ui/videojs-playlist-ui.css" rel="stylesheet">
+        <link href="<?php echo getCDN(); ?>node_modules/videojs-playlist-ui/dist/videojs-playlist-ui.css" rel="stylesheet">
 
         <script src="<?php echo getURL('node_modules/jquery/dist/jquery.min.js'); ?>" type="text/javascript"></script>
         <?php
@@ -255,8 +254,8 @@ PlayerSkins::getStartPlayerJS($str);
         include $global['systemRootPath'] . 'view/include/video.min.js.php';
         ?>
         <script src="<?php echo getURL('node_modules/jquery-ui-dist/jquery-ui.min.js'); ?>" type="text/javascript"></script>
-        <script src="<?php echo getCDN(); ?>plugin/PlayLists/videojs-playlist/videojs-playlist.js"></script>
-        <script src="<?php echo getCDN(); ?>plugin/PlayLists/videojs-playlist-ui/videojs-playlist-ui.js"></script>
+        <script src="<?php echo getCDN(); ?>node_modules/videojs-playlist/dist/videojs-playlist.min.js"></script>
+        <script src="<?php echo getCDN(); ?>node_modules/videojs-playlist-ui/dist/videojs-playlist-ui.min.js"></script>
         <script src="<?php echo getURL('node_modules/moment/min/moment.min.js'); ?>"></script>
         <?php
         echo getTagIfExists('node_modules/moment/locale/' . getLanguage() . '.js');

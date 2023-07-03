@@ -20,7 +20,9 @@ if(empty($obj) || !isset($obj->categoriesTopButtonsFluid)){
             <?php
             global $advancedCustom;
             $_rowCount = getRowCount();
+            $current = getCurrentPage();
             $_REQUEST['rowCount'] = 1000;
+            $_REQUEST['current'] = 1;
             $parsed_cats = array();
             $categories = Category::getAllCategories();
             foreach ($categories as $value) {
@@ -39,9 +41,9 @@ if(empty($obj) || !isset($obj->categoriesTopButtonsFluid)){
                     continue;
                 }
                 ?>
-                <li data-toggle="tooltip" title="<?php echo __($value['name']); ?>" data-placement="bottom">
-                    <a href="<?php echo Category::getCategoryLinkFromName($value['clean_name']); ?>" 
+                <li data-toggle="tooltip" title="<?php echo __($value['name']); ?>" data-placement="bottom"
                        class="<?php echo ($value['clean_name'] == @$_REQUEST['catName'] ? "active" : ""); ?>">
+                    <a href="<?php echo Category::getCategoryLinkFromName($value['clean_name']); ?>" >
                            <?php
                            echo '<i class="' . (empty($value['iconClass']) ? "fa fa-folder" : $value['iconClass']) . '"></i>  '
                            . '<span class="">' . __($value['name']) . '</span>';
@@ -54,6 +56,7 @@ if(empty($obj) || !isset($obj->categoriesTopButtonsFluid)){
                 <?php
             }
             $_REQUEST['rowCount'] = $_rowCount;
+            $_REQUEST['current'] = $current;
             /*
             for ($i = 0; $i < 100; $i++) {
                 ?> <li data-toggle="tooltip" title="<?php echo __($i); ?>" data-placement="bottom"> <a href="#"> <?php echo '<i class="fa fa-folder"></i>  <span class="hidden-xs">' . $i . '</span>';

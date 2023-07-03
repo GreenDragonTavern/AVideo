@@ -894,6 +894,21 @@ Click <a href=\"{link}\">here</a> to join our live.";
         return $port;
     }
 
+    public static function getPlayerDestinationHost() {
+        $obj = AVideoPlugin::getDataObjectIfEnabled('Live');
+        $host = parse_url($obj->playerServer, PHP_URL_HOST);
+        return $host;
+    }
+
+    public static function getPlayerDestinationPort() {
+        $obj = AVideoPlugin::getDataObjectIfEnabled('Live');
+        $port = parse_url($obj->playerServer, PHP_URL_PORT);
+        if (empty($port)) {
+            $port = 1935;
+        }
+        return $port;
+    }
+
     public static function getServer($live_servers_id = -1) {
         $obj = AVideoPlugin::getObjectData("Live");
         if (empty($obj->server_type->value)) {
@@ -1420,7 +1435,7 @@ Click <a href=\"{link}\">here</a> to join our live.";
                 $json = _json_decode($result);
                 return $json;
             }
-            _error_log("Live::getStatsObject[$live_servers_id] 4: cache not found");
+            //_error_log("Live::getStatsObject[$live_servers_id] 4: cache not found");
         } else {
             _error_log("Live::getStatsObject[$live_servers_id] 5: forced to be recreated");
         }
@@ -1708,6 +1723,8 @@ Click <a href=\"{link}\">here</a> to join our live.";
 
         $btn = '<button onclick="avideoModalIframeLarge(\'' . $global['webSiteRootURL'] . 'plugin/Live/view/editor.php\');" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fa fa-edit"></i> ' . __('Edit Live Servers') . '</button>';
         $btn .= '<button onclick="avideoAjax(webSiteRootURL+\'plugin/Live/view/finishAll.json.php\', {});" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fas fa-ban"></i> ' . __('Mark all as finished') . '</button>';
+        $btn .= '<button onclick="avideoAjax(webSiteRootURL+\'plugin/Live/view/deleteHistory.json.php\', {});" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fas fa-trash"></i> ' . __('Delete History') . '</button>';
+        
         if ($obj->server_type->value) {
             if ($obj->useLiveServers) {
                 $servers = Live_servers::getAll();
@@ -2028,6 +2045,12 @@ Click <a href=\"{link}\">here</a> to join our live.";
                 return $_getStats[$live_servers_id][$_REQUEST['name']];
             }
             $result = ObjectYPT::getCache($cacheName, maxLifetime() + 60, true);
+            /*
+            $cachefile = ObjectYPT::getCacheFileName($cacheName, false, $addSubDirs);
+            $cache = Cache::getCache($cacheName, $lifetime, $ignoreMetadata);
+            $c = @url_get_contents($cachefile);
+            var_dump($cachefile, $cache, $c);exit;
+            */
             if (!empty($result)) {
                 //_error_log("Live::_getStats cached result 2 {$_REQUEST['name']} {$cacheName}");
                 return _json_decode($result);
@@ -2313,6 +2336,9 @@ Click <a href=\"{link}\">here</a> to join our live.";
     }
 
     public static function getLiveParametersFromKey($key) {
+        if(empty($key)){
+            return ['key' => '', 'cleanKey' => '', 'live_index' => '', 'playlists_id_live' => 0];
+        }
         $key = preg_replace('/[^a-z0-9_-]/i', '', $key);
         //$obj = AVideoPlugin::getObjectData('Live');
         $playlists_id_live = false;
@@ -2443,10 +2469,15 @@ Click <a href=\"{link}\">here</a> to join our live.";
     }
 
     public static function isKeyLiveInStats($key, $live_servers_id = 0, $live_index = '', $force_recreate = false, $doNotCheckDatabase = true) {
-        global $_isLiveFromKey;
+        global $_isLiveFromKey, $global;
         if (empty($key) || $key == '-1') {
             _error_log('Live::isKeyLiveInStats key is empty');
             return false;
+        }
+        
+        if (!empty($global['disableIsKeyLiveInStats'])) {
+            _error_log('disableIsKeyLiveInStats');
+            return true;
         }
         $index = "$key, $live_servers_id,$live_index";
         if (!isset($_isLiveFromKey)) {
@@ -2454,20 +2485,20 @@ Click <a href=\"{link}\">here</a> to join our live.";
         }
 
         if (empty($force_recreate) && isset($_isLiveFromKey[$index])) {
-            _error_log('Live::isKeyLiveInStats key is already set');
+            //_error_log('Live::isKeyLiveInStats key is already set');
             return $_isLiveFromKey[$index];
         }
 
-        _error_log("Live::isLiveFromKey($key, $live_servers_id, $live_index, $force_recreate )");
+        //_error_log("Live::isLiveFromKey($key, $live_servers_id, $live_index, $force_recreate )");
         $o = AVideoPlugin::getObjectData("Live");
         if ($doNotCheckDatabase) {
             if (empty($o->server_type->value) || !empty($live_servers_id)) {
-                _error_log("Live::isLiveFromKey return LiveTransmitionHistory::isLive($key, $live_servers_id)");
+                //_error_log("Live::isLiveFromKey return LiveTransmitionHistory::isLive($key, $live_servers_id)");
                 return LiveTransmitionHistory::isLive($key, $live_servers_id);
             }
         }
 
-        _error_log("Live::isLiveFromKey($key, $live_servers_id, $live_index, $force_recreate )");
+        //_error_log("Live::isLiveFromKey($key, $live_servers_id, $live_index, $force_recreate )");
         //_error_log('getStats execute getStats: ' . __LINE__ . ' ' . __FILE__);
         //$json = getStatsNotifications($force_recreate);
         //_error_log('getStats execute getStats: ' . ($force_recreate?'force_recreate':'DO NOT force_recreate'));
@@ -2501,12 +2532,10 @@ Click <a href=\"{link}\">here</a> to join our live.";
                     if (preg_match("/{$key}.*/", $value['key'])) {
                         if (empty($live_servers_id)) {
                             $_isLiveFromKey[$index] = true;
-                            $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
                             break 2;
                         } else {
                             if (intval(@$value['live_servers_id']) == $live_servers_id) {
                                 $_isLiveFromKey[$index] = true;
-                                $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
                                 break 2;
                             }
                         }
@@ -2524,12 +2553,10 @@ Click <a href=\"{link}\">here</a> to join our live.";
                         if (preg_match("/{$key}.*/", $value['key'])) {
                             if (empty($live_servers_id)) {
                                 $_isLiveFromKey[$index] = true;
-                                $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
                                 break 2;
                             } else {
                                 if (intval(@$value['live_servers_id']) == $live_servers_id) {
                                     $_isLiveFromKey[$index] = true;
-                                    $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
                                     break 2;
                                 }
                             }
@@ -2537,15 +2564,15 @@ Click <a href=\"{link}\">here</a> to join our live.";
                     }
                 }
             }
-            _error_log("Live::isLiveFromKey namesFound " . json_encode($namesFound));
+            //_error_log("Live::isLiveFromKey namesFound " . json_encode($namesFound));
         } else {
             _error_log("Live::isLiveFromKey Stats respond empty");
         }
         if (empty($_isLiveFromKey[$index])) {
-            _error_log("Live::isLiveFromKey is NOT online [{$key}]");
+            //_error_log("Live::isLiveFromKey is NOT online [{$key}]");
             //_error_log(debug_backtrace());
         } else {
-            _error_log("Live::isLiveFromKey is online [{$key}]");
+            //_error_log("Live::isLiveFromKey is online [{$key}]");
         }
         return $_isLiveFromKey[$index];
     }
@@ -2577,7 +2604,7 @@ Click <a href=\"{link}\">here</a> to join our live.";
             $isLiveFromKey = self::isKeyLiveInStats($key, $live_servers_id, $live_index, $force_recreate);
             $_isLiveAndIsReadyFromKey[$name] = true;
             if (empty($isLiveFromKey)) {
-                _error_log("isLiveAndIsReadyFromKey the key {$key} is not present on the stats live_servers_id=$live_servers_id");
+                //_error_log("isLiveAndIsReadyFromKey the key {$key} is not present on the stats live_servers_id=$live_servers_id");
                 $_isLiveAndIsReadyFromKey[$name] = false;
             } else {
                 $ls = @$_REQUEST['live_servers_id'];
@@ -2989,22 +3016,17 @@ Click <a href=\"{link}\">here</a> to join our live.";
 
     public static function deleteStatsCache($clearFirstPage = false) {
         global $getStatsLive, $_getStats, $getStatsObject, $_getStatsNotifications, $__getAVideoCache, $_isLiveFromKey, $_isLiveAndIsReadyFromKey;
-
-        _error_log_debug("Live::deleteStatsCache");
-        $tmpDir = ObjectYPT::getCacheDir();
-        $cacheDir = $tmpDir . "getstats" . DIRECTORY_SEPARATOR;
-        if (isset($live_servers_id)) {
-            $cacheDir .= "live_servers_id_{$live_servers_id}";
-            $pattern = "/.getStats.{$live_servers_id}.*/i";
-            ObjectYPT::deleteCachePattern($pattern);
-        }
+        $cacheDir = getTmpDir().'YPTObjectCache/getStats/';
         _error_log("deleteStatsCache: {$cacheDir} " . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
         rrmdir($cacheDir);
+        if(class_exists('CachesInDB')){
+            CachesInDB::_deleteCacheWith('getStats');
+        }
         if ($clearFirstPage) {
             clearCache(true);
         }
         // temporary solution to when you go online
-        ObjectYPT::deleteALLCache();
+        //ObjectYPT::deleteALLCache();
         //isURL200Clear();
         unset($__getAVideoCache);
         unset($getStatsLive);

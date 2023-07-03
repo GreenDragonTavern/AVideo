@@ -6,7 +6,7 @@ $("#inputMetaDescription").val('');
 $("#inputShortSummary").val('');
 if (typeof row.externalOptions !== 'undefined' && row.externalOptions) {
     
-    var json = JSON.parse(row.externalOptions);
+    var json = typeof row.externalOptions == 'string' ? JSON.parse(row.externalOptions):row.externalOptions;
     
     if(json.doNotShowAdsOnThisVideo){
         $("#doNotShowAdsOnThisVideo").prop("checked", true);
@@ -31,7 +31,7 @@ if (typeof row.externalOptions !== 'undefined' && row.externalOptions) {
 if (typeof row.userExternalOptions !== 'undefined' && row.userExternalOptions) {
     
     try {
-        var json = JSON.parse(row.userExternalOptions);
+        var json = json_decode(row.userExternalOptions);
 
         if(json.doNotShowAdsOnThisChannel){
             $("#doNotShowAdsOnThisChannel").prop("checked", true);
